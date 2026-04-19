@@ -235,7 +235,7 @@ function DashboardPage() {
               </svg>
               <div className="text-center">
                 <div className="font-display text-3xl font-bold tabular-nums">{stats.completionRate.toFixed(0)}%</div>
-                <div className="text-xs text-muted-foreground mt-1">{stats.completed}/{stats.total}</div>
+                <div className="text-xs text-muted-foreground mt-1">{stats.completed}/{stats.completed + stats.pending}</div>
               </div>
             </div>
             {highPriorityPending > 0 && (
