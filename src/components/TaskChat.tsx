@@ -99,7 +99,7 @@ export function TaskChat() {
             </div>
           </div>
 
-          <ScrollArea className="flex-1" viewportRef={scrollRef as any}>
+          <div ref={scrollRef} className="flex-1 overflow-y-auto">
             <div className="p-4 space-y-3">
               {messages.map((m, i) => (
                 <div
