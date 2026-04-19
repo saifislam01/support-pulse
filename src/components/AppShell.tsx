@@ -142,6 +142,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="md:hidden h-20" />
         </main>
       </div>
+      <TaskChat />
     </div>
   );
 }
