@@ -6,7 +6,6 @@ import { RequireAuth } from "@/components/RequireAuth";
 import { AppShell } from "@/components/AppShell";
 import { KpiCard } from "@/components/KpiCard";
 import { AiInsightCard } from "@/components/AiInsightCard";
-import { DailyChecklist } from "@/components/DailyChecklist";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -148,8 +147,6 @@ function DashboardPage() {
         <KpiCard label="Pending" value={stats.pending} icon={Target} tint="warning" />
         <KpiCard label="Avg / Day" value={stats.avgPerDay} icon={Zap} tint="accent" decimals={1} />
       </div>
-
-      <DailyChecklist />
 
       <AiInsightCard />
 
