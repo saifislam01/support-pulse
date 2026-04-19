@@ -21,7 +21,7 @@ export const Route = createFileRoute("/leaderboard")({
       </AppShell>
     </RequireAuth>
   ),
-  head: () => ({ meta: [{ title: "Leaderboard — Velocity" }] }),
+  head: () => ({ meta: [{ title: "Leaderboard — Support Performance Tracker" }] }),
 });
 
 type Period = "daily" | "weekly" | "monthly" | "all";

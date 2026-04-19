@@ -27,7 +27,7 @@ export const Route = createFileRoute("/tasks")({
       </AppShell>
     </RequireAuth>
   ),
-  head: () => ({ meta: [{ title: "Tasks — Velocity" }] }),
+  head: () => ({ meta: [{ title: "Tasks — Support Performance Tracker" }] }),
 });
 
 type Priority = "low" | "medium" | "high";
