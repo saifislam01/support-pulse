@@ -143,7 +143,7 @@ export function TaskChat() {
                 </div>
               )}
             </div>
-          </ScrollArea>
+          </div>
 
           <form
             onSubmit={(e) => {
