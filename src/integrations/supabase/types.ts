@@ -14,6 +14,68 @@ export type Database = {
   }
   public: {
     Tables: {
+      daily_task_completions: {
+        Row: {
+          completed_at: string
+          completion_date: string
+          id: string
+          points_awarded: number
+          template_id: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string
+          completion_date?: string
+          id?: string
+          points_awarded?: number
+          template_id: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string
+          completion_date?: string
+          id?: string
+          points_awarded?: number
+          template_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_task_completions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "daily_task_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_task_templates: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+          points: number
+          sort_order: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name: string
+          points?: number
+          sort_order?: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          points?: number
+          sort_order?: number
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           body: string | null

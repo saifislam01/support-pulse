@@ -33,6 +33,11 @@ type TaskRow = {
   points_awarded: number;
   completed_at: string | null;
 };
+type DailyRow = {
+  user_id: string;
+  points_awarded: number;
+  completed_at: string;
+};
 
 type Entry = {
   user_id: string;
@@ -56,19 +61,22 @@ function LeaderboardPage() {
   const { user } = useAuth();
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
   const [tasks, setTasks] = useState<TaskRow[]>([]);
+  const [daily, setDaily] = useState<DailyRow[]>([]);
   const [period, setPeriod] = useState<Period>("weekly");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
     const load = async () => {
-      const [{ data: profs }, { data: tks }] = await Promise.all([
+      const [{ data: profs }, { data: tks }, { data: dly }] = await Promise.all([
         supabase.from("profiles").select("id, display_name, avatar_url"),
         supabase.from("tasks").select("user_id, priority, status, points_awarded, completed_at").eq("status", "completed"),
+        supabase.from("daily_task_completions").select("user_id, points_awarded, completed_at"),
       ]);
       if (mounted) {
         setProfiles((profs ?? []) as ProfileRow[]);
         setTasks((tks ?? []) as TaskRow[]);
+        setDaily((dly ?? []) as DailyRow[]);
         setLoading(false);
       }
     };
@@ -82,6 +90,12 @@ function LeaderboardPage() {
           .select("user_id, priority, status, points_awarded, completed_at")
           .eq("status", "completed");
         setTasks((tks ?? []) as TaskRow[]);
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "daily_task_completions" }, async () => {
+        const { data: dly } = await supabase
+          .from("daily_task_completions")
+          .select("user_id, points_awarded, completed_at");
+        setDaily((dly ?? []) as DailyRow[]);
       })
       .subscribe();
     return () => {
@@ -115,6 +129,16 @@ function LeaderboardPage() {
         e.first_completion = t.completed_at;
       }
     });
+    daily.forEach((d) => {
+      if (cutoff && new Date(d.completed_at) < cutoff) return;
+      const e = map.get(d.user_id);
+      if (!e) return;
+      e.total_points += d.points_awarded;
+      e.tasks_completed += 1;
+      if (!e.first_completion || d.completed_at < e.first_completion) {
+        e.first_completion = d.completed_at;
+      }
+    });
     // Tie-break: points DESC, has_high DESC, first_completion ASC
     return [...map.values()].sort((a, b) => {
       if (b.total_points !== a.total_points) return b.total_points - a.total_points;
@@ -124,7 +148,7 @@ function LeaderboardPage() {
       }
       return 0;
     });
-  }, [profiles, tasks, period]);
+  }, [profiles, tasks, daily, period]);
 
   const top3 = entries.slice(0, 3);
   const rest = entries.slice(3);
