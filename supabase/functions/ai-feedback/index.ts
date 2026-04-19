@@ -24,20 +24,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Use the user's JWT to fetch their tasks (RLS scoped)
+    // Use the incoming bearer token for RLS-scoped queries.
+    // Avoid auth.getUser() here because edge runtime session lookups can fail
+    // even when the JWT is still valid for database access.
     const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.45.0");
     const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
       global: { headers: { Authorization: authHeader } },
-      auth: { persistSession: false },
+      auth: { persistSession: false, autoRefreshToken: false },
     });
-
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData?.user) {
-      return new Response(JSON.stringify({ error: "Invalid session" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
     const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
     const { data: tasks, error: tasksErr } = await supabase
@@ -46,7 +40,14 @@ Deno.serve(async (req) => {
       .gte("created_at", since)
       .order("created_at", { ascending: false })
       .limit(200);
-    if (tasksErr) throw tasksErr;
+    if (tasksErr) {
+      const message = typeof tasksErr.message === "string" ? tasksErr.message : "Failed to load tasks";
+      const unauthorized = /jwt|auth|permission|unauthorized/i.test(message);
+      return new Response(JSON.stringify({ error: unauthorized ? "Invalid session" : message }), {
+        status: unauthorized ? 401 : 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Compute aggregate stats to keep prompt compact
     const all = tasks ?? [];
