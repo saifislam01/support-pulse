@@ -10,7 +10,7 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
-  head: () => ({ meta: [{ title: "Sign in — Velocity" }] }),
+  head: () => ({ meta: [{ title: "Sign in — Support Performance Tracker" }] }),
 });
 
 const schema = z.object({
@@ -72,7 +72,7 @@ function LoginPage() {
             <div className="size-9 rounded-lg gradient-rank flex items-center justify-center">
               <Sparkles className="size-5 text-primary-foreground" />
             </div>
-            <span className="font-display font-bold text-lg">Velocity</span>
+            <span className="font-display font-bold text-lg">Support Performance Tracker</span>
           </div>
 
           <h2 className="font-display text-3xl font-bold">Sign in</h2>

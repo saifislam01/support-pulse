@@ -1,23 +1,29 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, ListChecks, Trophy, LogOut, Moon, Sun, Sparkles } from "lucide-react";
+import { LayoutDashboard, ListChecks, Trophy, LogOut, Moon, Sun, Sparkles, Shield } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/lib/theme";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { NotificationBell } from "@/components/NotificationBell";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 
-const navItems = [
+const baseNav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/tasks", label: "Tasks", icon: ListChecks },
   { to: "/leaderboard", label: "Leaderboard", icon: Trophy },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { user, signOut } = useAuth();
+  const { user, role, signOut } = useAuth();
   const { theme, toggle } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
+
+  const navItems =
+    role === "admin"
+      ? [...baseNav, { to: "/admin", label: "Admin", icon: Shield }]
+      : baseNav;
 
   const handleSignOut = async () => {
     await signOut();
@@ -39,8 +45,8 @@ export function AppShell({ children }: { children: ReactNode }) {
               <Sparkles className="size-5 text-primary-foreground" strokeWidth={2.5} />
             </div>
             <div>
-              <div className="font-display font-bold text-lg leading-none">Velocity</div>
-              <div className="text-xs text-muted-foreground mt-0.5">Engineer OS</div>
+              <div className="font-display font-bold text-base leading-none">Support Tracker</div>
+              <div className="text-xs text-muted-foreground mt-0.5">Performance OS</div>
             </div>
           </Link>
 
@@ -65,7 +71,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             })}
           </nav>
 
-          <div className="flex items-center gap-3 pt-4 border-t border-border">
+          <div className="flex items-center gap-2 pt-4 border-t border-border">
             <Avatar className="size-9">
               <AvatarFallback className="bg-primary/15 text-primary text-xs font-semibold">
                 {initials}
@@ -77,6 +83,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               </div>
               <div className="text-xs text-muted-foreground truncate">{user?.email}</div>
             </div>
+            <NotificationBell />
           </div>
 
           <div className="flex gap-2 mt-3">
@@ -95,9 +102,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="size-7 rounded-md gradient-rank flex items-center justify-center">
               <Sparkles className="size-4 text-primary-foreground" />
             </div>
-            <span className="font-display font-bold">Velocity</span>
+            <span className="font-display font-bold">Support Tracker</span>
           </Link>
-          <div className="flex gap-1">
+          <div className="flex gap-1 items-center">
+            <NotificationBell />
             <Button variant="ghost" size="icon" onClick={toggle}>
               {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
             </Button>
