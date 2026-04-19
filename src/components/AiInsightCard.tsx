@@ -37,7 +37,9 @@ export function AiInsightCard() {
         }
       } else if (data?.error) {
         setError(data.error);
-        toast.error(data.error);
+        if (!/invalid session/i.test(data.error)) {
+          toast.error(data.error);
+        }
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Failed to load AI feedback";

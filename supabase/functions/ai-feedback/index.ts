@@ -17,6 +17,7 @@ Deno.serve(async (req) => {
     }
 
     const authHeader = req.headers.get("Authorization");
+    const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
@@ -24,29 +25,30 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Use the user's JWT to fetch their tasks (RLS scoped)
-    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.45.0");
-    const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-      global: { headers: { Authorization: authHeader } },
-      auth: { persistSession: false },
+    const tasksUrl = new URL(`${SUPABASE_URL}/rest/v1/tasks`);
+    tasksUrl.searchParams.set("select", "name,priority,status,points_awarded,created_at,completed_at");
+    tasksUrl.searchParams.set("created_at", `gte.${since}`);
+    tasksUrl.searchParams.set("order", "created_at.desc");
+    tasksUrl.searchParams.set("limit", "200");
+
+    const tasksResp = await fetch(tasksUrl.toString(), {
+      headers: {
+        apikey: SUPABASE_PUBLISHABLE_KEY,
+        Authorization: authHeader,
+        "Content-Type": "application/json",
+      },
     });
 
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData?.user) {
-      return new Response(JSON.stringify({ error: "Invalid session" }), {
-        status: 401,
+    if (!tasksResp.ok) {
+      const message = await tasksResp.text();
+      const unauthorized = tasksResp.status === 401 || tasksResp.status === 403;
+      return new Response(JSON.stringify({ error: unauthorized ? "Invalid session" : `Failed to load tasks: ${message}` }), {
+        status: unauthorized ? 401 : 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-    const { data: tasks, error: tasksErr } = await supabase
-      .from("tasks")
-      .select("name, priority, status, points_awarded, created_at, completed_at")
-      .gte("created_at", since)
-      .order("created_at", { ascending: false })
-      .limit(200);
-    if (tasksErr) throw tasksErr;
+    const tasks = await tasksResp.json();
 
     // Compute aggregate stats to keep prompt compact
     const all = tasks ?? [];
