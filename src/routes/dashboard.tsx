@@ -100,7 +100,10 @@ function DashboardPage() {
     const dailyPoints = dailyCompletions.reduce((sum, d) => sum + (d.points_awarded ?? 0), 0);
     const totalPoints = taskPoints + dailyPoints;
     const totalCompleted = completed.length + dailyCompletions.length;
-    const completionRate = tasks.length > 0 ? (completed.length / tasks.length) * 100 : 0;
+    // Include daily checklist completions in the rate. Each completion counts as
+    // a completed unit out of total tracked units (regular tasks + daily completions).
+    const totalUnits = tasks.length + dailyCompletions.length;
+    const completionRate = totalUnits > 0 ? (totalCompleted / totalUnits) * 100 : 0;
 
     // Average completions per active day (tasks + daily checklist)
     const days = new Set<string>();
