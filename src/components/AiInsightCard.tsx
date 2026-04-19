@@ -14,6 +14,8 @@ type Feedback = {
   score: number;
 };
 
+const RATE_LIMIT_MESSAGE = "Live AI feedback is busy right now, so you're seeing a quick fallback summary.";
+
 export function AiInsightCard() {
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
@@ -27,11 +29,15 @@ export function AiInsightCard() {
         body: {},
       });
       if (fnError) throw fnError;
-      if (data?.error) {
+      if (data?.feedback) {
+        setFeedback(data.feedback);
+        if (data?.fallback) {
+          setError(data.error ?? RATE_LIMIT_MESSAGE);
+          toast.error(data.error ?? RATE_LIMIT_MESSAGE);
+        }
+      } else if (data?.error) {
         setError(data.error);
         toast.error(data.error);
-      } else if (data?.feedback) {
-        setFeedback(data.feedback);
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Failed to load AI feedback";
@@ -79,10 +85,13 @@ export function AiInsightCard() {
             <div className="h-3 w-full bg-muted/40 rounded animate-pulse" />
             <div className="h-3 w-5/6 bg-muted/40 rounded animate-pulse" />
           </div>
-        ) : error ? (
-          <div className="text-sm text-muted-foreground py-4">{error}</div>
         ) : feedback ? (
           <div className="space-y-4">
+            {error && (
+              <div className="rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning">
+                {error}
+              </div>
+            )}
             <p className="text-sm leading-relaxed">{feedback.headline}</p>
 
             <div className="grid gap-3 sm:grid-cols-3">
@@ -91,6 +100,8 @@ export function AiInsightCard() {
               <Section icon={Lightbulb} tint="primary" label="Try this" items={feedback.suggestions} />
             </div>
           </div>
+        ) : error ? (
+          <div className="text-sm text-muted-foreground py-4">{error}</div>
         ) : null}
       </div>
     </Card>

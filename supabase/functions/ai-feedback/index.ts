@@ -82,6 +82,50 @@ Deno.serve(async (req) => {
       last_7_days: dayCounts,
     };
 
+    const buildFallbackFeedback = () => {
+      const completionRate = summary.totals.tasks > 0 ? Math.round((summary.totals.completed / summary.totals.tasks) * 100) : 0;
+      const activeDays = dayCounts.filter((day) => day.count > 0).length;
+      const strongestPriority = Object.entries(byPriority)
+        .sort((a, b) => b[1].c - a[1].c)[0]?.[0] ?? "medium";
+      const backlogPriority = Object.entries(byPriority)
+        .sort((a, b) => b[1].p - a[1].p)[0]?.[0] ?? "medium";
+
+      return {
+        headline:
+          summary.totals.tasks === 0
+            ? "No recent task data yet — complete a few tasks to unlock tailored coaching."
+            : `You completed ${summary.totals.completed} of ${summary.totals.tasks} tasks in the last 30 days, with a ${completionRate}% completion rate.`,
+        strengths: [
+          summary.totals.completed > 0
+            ? `You've closed ${summary.totals.completed} tasks in the last 30 days.`
+            : "You have a clean slate to establish a strong completion rhythm.",
+          totalPoints > 0
+            ? `Your completed work generated ${totalPoints} points of impact.`
+            : "You can unlock momentum quickly by completing a few high-value tasks.",
+          activeDays >= 3
+            ? `Your output was spread across ${activeDays} active days, showing steady engagement.`
+            : `Your best completion volume is currently in ${strongestPriority}-priority work.`,
+        ],
+        weaknesses: [
+          summary.totals.pending > 0
+            ? `${summary.totals.pending} tasks are still open, with the biggest backlog in ${backlogPriority}-priority work.`
+            : "You have no open backlog right now — keep it that way with consistent follow-through.",
+          activeDays <= 1 && summary.totals.completed > 0
+            ? "Most completions are clustered into very few days, which may indicate inconsistent pacing."
+            : "There may be room to smooth out throughput across the week.",
+          completionRate < 60 && summary.totals.tasks > 0
+            ? "Your completion rate is below the ideal target, so open work may be accumulating faster than it closes."
+            : "Your next gains likely come from increasing the quality and priority mix of completed tasks.",
+        ],
+        suggestions: [
+          "Prioritize clearing one high- or medium-priority pending task early each day.",
+          "Aim for a steadier daily completion rhythm instead of batching work into one spike.",
+          "Review open tasks weekly and close or re-scope anything stalled.",
+        ],
+        score: Math.max(35, Math.min(95, completionRate || (summary.totals.completed > 0 ? 55 : 40))),
+      };
+    };
+
     const systemPrompt = `You are a concise performance coach for support engineers. Analyze the engineer's last 30 days of task data and produce honest, actionable feedback. Keep tone supportive but direct. Avoid filler.`;
     const userPrompt = `Performance data (JSON):\n${JSON.stringify(summary)}\n\nReturn structured feedback.`;
 
@@ -142,21 +186,36 @@ Deno.serve(async (req) => {
 
     if (!aiResp.ok) {
       if (aiResp.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit reached. Try again in a moment." }), {
-          status: 429,
+        return new Response(JSON.stringify({
+          error: "Rate limit reached. Try again in a moment.",
+          fallback: true,
+          feedback: buildFallbackFeedback(),
+          summary,
+        }), {
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (aiResp.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Add funds in workspace settings." }), {
-          status: 402,
+        return new Response(JSON.stringify({
+          error: "AI credits exhausted. Add funds in workspace settings.",
+          fallback: true,
+          feedback: buildFallbackFeedback(),
+          summary,
+        }), {
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       const text = await aiResp.text();
       console.error("AI gateway error", aiResp.status, text);
-      return new Response(JSON.stringify({ error: "AI request failed" }), {
-        status: 500,
+      return new Response(JSON.stringify({
+        error: "AI request failed",
+        fallback: true,
+        feedback: buildFallbackFeedback(),
+        summary,
+      }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -179,8 +238,11 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error("ai-feedback error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500,
+    return new Response(JSON.stringify({
+      error: e instanceof Error ? e.message : "Unknown error",
+      fallback: true,
+    }), {
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
