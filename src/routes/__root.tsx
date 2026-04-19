@@ -27,7 +27,7 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Velocity — Engineer Performance OS" },
+      { title: "Support Performance Tracker" },
       { name: "description", content: "Track tasks, earn points, and climb the leaderboard. A performance dashboard for support engineers." },
     ],
     links: [

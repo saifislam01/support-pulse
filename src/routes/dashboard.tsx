@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { RequireAuth } from "@/components/RequireAuth";
 import { AppShell } from "@/components/AppShell";
 import { KpiCard } from "@/components/KpiCard";
+import { AiInsightCard } from "@/components/AiInsightCard";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +21,7 @@ export const Route = createFileRoute("/dashboard")({
       </AppShell>
     </RequireAuth>
   ),
-  head: () => ({ meta: [{ title: "Dashboard — Velocity" }] }),
+  head: () => ({ meta: [{ title: "Dashboard — Support Performance Tracker" }] }),
 });
 
 type Task = {
@@ -146,6 +147,8 @@ function DashboardPage() {
         <KpiCard label="Pending" value={stats.pending} icon={Target} tint="warning" />
         <KpiCard label="Avg / Day" value={stats.avgPerDay} icon={Zap} tint="accent" decimals={1} />
       </div>
+
+      <AiInsightCard />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2 p-6 glass shadow-card">
