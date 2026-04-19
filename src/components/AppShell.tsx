@@ -5,6 +5,7 @@ import { useTheme } from "@/lib/theme";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { NotificationBell } from "@/components/NotificationBell";
+import { TaskChat } from "@/components/TaskChat";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 
@@ -141,6 +142,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="md:hidden h-20" />
         </main>
       </div>
+      <TaskChat />
     </div>
   );
 }
