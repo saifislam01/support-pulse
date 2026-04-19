@@ -95,9 +95,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="size-7 rounded-md gradient-rank flex items-center justify-center">
               <Sparkles className="size-4 text-primary-foreground" />
             </div>
-            <span className="font-display font-bold">Velocity</span>
+            <span className="font-display font-bold">Support Tracker</span>
           </Link>
-          <div className="flex gap-1">
+          <div className="flex gap-1 items-center">
+            <NotificationBell />
             <Button variant="ghost" size="icon" onClick={toggle}>
               {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
             </Button>
