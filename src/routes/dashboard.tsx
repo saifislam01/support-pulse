@@ -34,40 +34,56 @@ type Task = {
   completed_at: string | null;
 };
 
+type DailyCompletion = {
+  id: string;
+  points_awarded: number;
+  completed_at: string;
+};
+
 function DashboardPage() {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [dailyCompletions, setDailyCompletions] = useState<DailyCompletion[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
     let mounted = true;
-    (async () => {
+
+    const loadTasks = async () => {
       const { data } = await supabase
         .from("tasks")
         .select("id, name, priority, status, points_awarded, created_at, completed_at")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
-      if (mounted) {
-        setTasks((data ?? []) as Task[]);
-        setLoading(false);
-      }
+      if (mounted) setTasks((data ?? []) as Task[]);
+    };
+
+    const loadDaily = async () => {
+      const { data } = await supabase
+        .from("daily_task_completions")
+        .select("id, points_awarded, completed_at")
+        .eq("user_id", user.id);
+      if (mounted) setDailyCompletions((data ?? []) as DailyCompletion[]);
+    };
+
+    (async () => {
+      await Promise.all([loadTasks(), loadDaily()]);
+      if (mounted) setLoading(false);
     })();
 
-    // Realtime
+    // Realtime — both tables affect total points
     const channel = supabase
-      .channel("dashboard-tasks")
+      .channel(`dashboard-${user.id}-${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "tasks", filter: `user_id=eq.${user.id}` },
-        async () => {
-          const { data } = await supabase
-            .from("tasks")
-            .select("id, name, priority, status, points_awarded, created_at, completed_at")
-            .eq("user_id", user.id)
-            .order("created_at", { ascending: false });
-          setTasks((data ?? []) as Task[]);
-        }
+        loadTasks,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "daily_task_completions", filter: `user_id=eq.${user.id}` },
+        loadDaily,
       )
       .subscribe();
 
@@ -80,26 +96,32 @@ function DashboardPage() {
   const stats = useMemo(() => {
     const completed = tasks.filter((t) => t.status === "completed");
     const pending = tasks.filter((t) => t.status === "pending");
-    const totalPoints = completed.reduce((sum, t) => sum + t.points_awarded, 0);
+    const taskPoints = completed.reduce((sum, t) => sum + t.points_awarded, 0);
+    const dailyPoints = dailyCompletions.reduce((sum, d) => sum + (d.points_awarded ?? 0), 0);
+    const totalPoints = taskPoints + dailyPoints;
+    const totalCompleted = completed.length + dailyCompletions.length;
     const completionRate = tasks.length > 0 ? (completed.length / tasks.length) * 100 : 0;
 
-    // Average tasks per active day
-    const days = new Set(
-      completed
-        .filter((t) => t.completed_at)
-        .map((t) => format(new Date(t.completed_at!), "yyyy-MM-dd"))
-    );
-    const avgPerDay = days.size > 0 ? completed.length / days.size : 0;
+    // Average completions per active day (tasks + daily checklist)
+    const days = new Set<string>();
+    completed.forEach((t) => {
+      if (t.completed_at) days.add(format(new Date(t.completed_at), "yyyy-MM-dd"));
+    });
+    dailyCompletions.forEach((d) => {
+      days.add(format(new Date(d.completed_at), "yyyy-MM-dd"));
+    });
+    const avgPerDay = days.size > 0 ? totalCompleted / days.size : 0;
 
     return {
       totalPoints,
-      completed: completed.length,
+      completed: totalCompleted,
       pending: pending.length,
       total: tasks.length,
       completionRate,
       avgPerDay,
     };
-  }, [tasks]);
+  }, [tasks, dailyCompletions]);
+
 
   const trend = useMemo(() => {
     const days: { day: string; completed: number; points: number }[] = [];
