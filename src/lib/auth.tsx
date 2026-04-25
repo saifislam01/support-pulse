@@ -23,35 +23,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const fetchRole = (userId: string) => {
+      // defer to avoid deadlock with auth state callback
+      setTimeout(async () => {
+        const { data } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", userId);
+        const roles = (data?.map((r) => r.role as Role)) ?? [];
+        // Priority: admin > manager > support_engineer
+        const resolved: Role = roles.includes("admin")
+          ? "admin"
+          : roles.includes("manager")
+            ? "manager"
+            : "support_engineer";
+        setRole(resolved);
+      }, 0);
+    };
+
     // Set up listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, sess) => {
       setSession(sess);
       setUser(sess?.user ?? null);
       if (sess?.user) {
-        // defer role fetch to avoid deadlock
-        setTimeout(async () => {
-          const { data } = await supabase
-            .from("user_roles")
-            .select("role")
-            .eq("user_id", sess.user.id);
-          const roles = (data?.map((r) => r.role as Role)) ?? [];
-          // Priority: admin > manager > support_engineer
-          const resolved: Role = roles.includes("admin")
-            ? "admin"
-            : roles.includes("manager")
-              ? "manager"
-              : "support_engineer";
-          setRole(resolved);
-        }, 0);
+        fetchRole(sess.user.id);
       } else {
         setRole(null);
       }
     });
 
-    // THEN check existing session
+    // THEN check existing session — also fetch role here, since
+    // onAuthStateChange does NOT fire for an already-restored session on reload.
     supabase.auth.getSession().then(({ data: { session: sess } }) => {
       setSession(sess);
       setUser(sess?.user ?? null);
+      if (sess?.user) {
+        fetchRole(sess.user.id);
+      }
       setLoading(false);
     });
 
