@@ -12,6 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { Trophy, Target, Zap, CheckCircle2, TrendingUp } from "lucide-react";
 import { format, subDays, startOfDay, isAfter } from "date-fns";
 import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+import { AdminDashboard } from "@/components/dashboards/AdminDashboard";
+import { ManagerDashboard } from "@/components/dashboards/ManagerDashboard";
 
 export const Route = createFileRoute("/dashboard")({
   component: () => (
