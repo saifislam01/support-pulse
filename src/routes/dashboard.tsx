@@ -17,12 +17,26 @@ export const Route = createFileRoute("/dashboard")({
   component: () => (
     <RequireAuth>
       <AppShell>
-        <DashboardPage />
+        <DashboardRouter />
       </AppShell>
     </RequireAuth>
   ),
   head: () => ({ meta: [{ title: "Dashboard — Support Performance Tracker" }] }),
 });
+
+function DashboardRouter() {
+  const { role, loading } = useAuth();
+  if (loading || !role) {
+    return (
+      <div className="flex items-center justify-center py-20 text-muted-foreground text-sm">
+        Loading…
+      </div>
+    );
+  }
+  if (role === "admin") return <AdminDashboard />;
+  if (role === "manager") return <ManagerDashboard />;
+  return <DashboardPage />;
+}
 
 type Task = {
   id: string;
