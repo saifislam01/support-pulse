@@ -205,6 +205,64 @@ function AdminPage() {
         </Card>
       )}
 
+      {isAdmin && (
+        <Card className="p-6 glass shadow-card">
+          <div className="flex items-baseline justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <UserCog className="size-4 text-primary" />
+              <h3 className="font-display text-lg font-semibold">Manage roles</h3>
+            </div>
+            <span className="text-xs text-muted-foreground">Assign roles to registered users</span>
+          </div>
+          {loading ? (
+            <div className="py-12 flex justify-center">
+              <Loader2 className="size-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : engineers.length === 0 ? (
+            <div className="py-12 text-center text-sm text-muted-foreground">No users yet.</div>
+          ) : (
+            <div className="divide-y divide-border">
+              {engineers.map((e) => {
+                const initials = (e.display_name ?? "U").slice(0, 2).toUpperCase();
+                const current = roleMap[e.user_id] ?? "support_engineer";
+                return (
+                  <div key={e.user_id} className="flex items-center gap-3 py-3">
+                    <Avatar className="size-9">
+                      <AvatarFallback className="bg-primary/15 text-primary text-xs font-semibold">
+                        {initials}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium truncate">{e.display_name ?? "Unnamed"}</div>
+                      <div className="text-xs text-muted-foreground">Current: {ROLE_LABEL[current]}</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Select
+                        value={current}
+                        onValueChange={(v) => changeRole(e.user_id, v as Role)}
+                        disabled={updatingRole === e.user_id}
+                      >
+                        <SelectTrigger className="w-[180px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="admin">Admin</SelectItem>
+                          <SelectItem value="manager">Manager</SelectItem>
+                          <SelectItem value="support_engineer">Support engineer</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {updatingRole === e.user_id && (
+                        <Loader2 className="size-4 animate-spin text-muted-foreground" />
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Card>
+      )}
+
       <Card className="p-6 glass shadow-card">
         <div className="flex items-baseline justify-between mb-4">
           <h3 className="font-display text-lg font-semibold">All engineers</h3>
