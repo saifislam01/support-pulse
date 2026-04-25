@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-type Role = "admin" | "engineer";
+export type Role = "admin" | "manager" | "support_engineer";
 
 interface AuthContextValue {
   user: User | null;
@@ -35,7 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             .select("role")
             .eq("user_id", sess.user.id)
             .maybeSingle();
-          setRole((data?.role as Role) ?? "engineer");
+          setRole((data?.role as Role) ?? "support_engineer");
         }, 0);
       } else {
         setRole(null);
