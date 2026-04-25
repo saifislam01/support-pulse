@@ -24,10 +24,13 @@ type Completion = {
   points_awarded: number;
 };
 
-function todayUTC(): string {
-  const now = new Date();
+function todayGMT6(): string {
+  // Shift current time to GMT+6, then take the calendar date
+  const shifted = new Date(Date.now() + 6 * 60 * 60 * 1000);
   return format(
-    new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())),
+    new Date(
+      Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth(), shifted.getUTCDate()),
+    ),
     "yyyy-MM-dd",
   );
 }
@@ -38,7 +41,7 @@ export function DailyChecklist() {
   const [completions, setCompletions] = useState<Completion[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const date = todayUTC();
+  const date = todayGMT6();
 
   useEffect(() => {
     if (!user) return;
