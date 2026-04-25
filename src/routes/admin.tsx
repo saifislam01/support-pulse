@@ -11,8 +11,16 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { KpiCard } from "@/components/KpiCard";
-import { Shield, Users, Trophy, ListChecks, Plus, Minus, Loader2 } from "lucide-react";
+import { Shield, Users, Trophy, ListChecks, Plus, Minus, Loader2, UserCog } from "lucide-react";
+
+type Role = "admin" | "manager" | "support_engineer";
+const ROLE_LABEL: Record<Role, string> = {
+  admin: "Admin",
+  manager: "Manager",
+  support_engineer: "Support engineer",
+};
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin")({
@@ -45,6 +53,8 @@ function AdminPage() {
   const [delta, setDelta] = useState("");
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [roleMap, setRoleMap] = useState<Record<string, Role>>({});
+  const [updatingRole, setUpdatingRole] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -56,13 +66,14 @@ function AdminPage() {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: lb }, { count: tasksTotal }, { count: tasksDone }] = await Promise.all([
+    const [{ data: lb }, { count: tasksTotal }, { count: tasksDone }, { data: roles }] = await Promise.all([
       supabase
         .from("leaderboard_all")
         .select("user_id, display_name, avatar_url, total_points, tasks_completed, has_high")
         .order("total_points", { ascending: false }),
       supabase.from("tasks").select("*", { count: "exact", head: true }),
       supabase.from("tasks").select("*", { count: "exact", head: true }).eq("status", "completed"),
+      supabase.from("user_roles").select("user_id, role"),
     ]);
     const list = (lb ?? []) as Engineer[];
     setEngineers(list);
@@ -72,6 +83,15 @@ function AdminPage() {
       completed: tasksDone ?? 0,
       points: list.reduce((s, e) => s + (e.total_points ?? 0), 0),
     });
+    const priority: Role[] = ["admin", "manager", "support_engineer"];
+    const map: Record<string, Role> = {};
+    for (const r of (roles ?? []) as { user_id: string; role: Role }[]) {
+      const current = map[r.user_id];
+      if (!current || priority.indexOf(r.role) < priority.indexOf(current)) {
+        map[r.user_id] = r.role;
+      }
+    }
+    setRoleMap(map);
     setLoading(false);
   };
 
@@ -104,6 +124,29 @@ function AdminPage() {
     setDelta("");
     setReason("");
     load();
+  };
+
+  const changeRole = async (userId: string, newRole: Role) => {
+    const previous = roleMap[userId];
+    if (previous === newRole) return;
+    setUpdatingRole(userId);
+    // Optimistic
+    setRoleMap((m) => ({ ...m, [userId]: newRole }));
+    const { error: delErr } = await supabase.from("user_roles").delete().eq("user_id", userId);
+    if (delErr) {
+      setUpdatingRole(null);
+      setRoleMap((m) => ({ ...m, [userId]: previous }));
+      toast.error(delErr.message);
+      return;
+    }
+    const { error: insErr } = await supabase.from("user_roles").insert({ user_id: userId, role: newRole });
+    setUpdatingRole(null);
+    if (insErr) {
+      setRoleMap((m) => ({ ...m, [userId]: previous }));
+      toast.error(insErr.message);
+      return;
+    }
+    toast.success(`Role updated to ${ROLE_LABEL[newRole]}`);
   };
 
   const top = useMemo(() => engineers.slice(0, 3), [engineers]);
@@ -159,6 +202,64 @@ function AdminPage() {
               </div>
             ))}
           </div>
+        </Card>
+      )}
+
+      {isAdmin && (
+        <Card className="p-6 glass shadow-card">
+          <div className="flex items-baseline justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <UserCog className="size-4 text-primary" />
+              <h3 className="font-display text-lg font-semibold">Manage roles</h3>
+            </div>
+            <span className="text-xs text-muted-foreground">Assign roles to registered users</span>
+          </div>
+          {loading ? (
+            <div className="py-12 flex justify-center">
+              <Loader2 className="size-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : engineers.length === 0 ? (
+            <div className="py-12 text-center text-sm text-muted-foreground">No users yet.</div>
+          ) : (
+            <div className="divide-y divide-border">
+              {engineers.map((e) => {
+                const initials = (e.display_name ?? "U").slice(0, 2).toUpperCase();
+                const current = roleMap[e.user_id] ?? "support_engineer";
+                return (
+                  <div key={e.user_id} className="flex items-center gap-3 py-3">
+                    <Avatar className="size-9">
+                      <AvatarFallback className="bg-primary/15 text-primary text-xs font-semibold">
+                        {initials}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium truncate">{e.display_name ?? "Unnamed"}</div>
+                      <div className="text-xs text-muted-foreground">Current: {ROLE_LABEL[current]}</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Select
+                        value={current}
+                        onValueChange={(v) => changeRole(e.user_id, v as Role)}
+                        disabled={updatingRole === e.user_id}
+                      >
+                        <SelectTrigger className="w-[180px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="admin">Admin</SelectItem>
+                          <SelectItem value="manager">Manager</SelectItem>
+                          <SelectItem value="support_engineer">Support engineer</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {updatingRole === e.user_id && (
+                        <Loader2 className="size-4 animate-spin text-muted-foreground" />
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </Card>
       )}
 
