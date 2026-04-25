@@ -41,7 +41,7 @@ export function DailyChecklist() {
   const [completions, setCompletions] = useState<Completion[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const date = todayUTC();
+  const date = todayGMT6();
 
   useEffect(() => {
     if (!user) return;
