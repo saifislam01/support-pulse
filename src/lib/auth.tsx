@@ -27,21 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let requestId = 0;
 
     const fetchRole = async (userId: string): Promise<Role> => {
-      const priority: Role[] = ["admin", "manager", "support_engineer"];
-
-      try {
-        for (const candidate of priority) {
-          const { data, error } = await supabase.rpc("has_role", {
-            _user_id: userId,
-            _role: candidate,
-          });
-          if (error) throw error;
-          if (data) return candidate;
-        }
-      } catch (error) {
-        console.error("Error checking role:", error);
-      }
-
+      // Single round-trip: fetch all roles for the user at once, then pick highest priority.
       const { data, error } = await supabase
         .from("user_roles")
         .select("role")
