@@ -184,7 +184,7 @@ function LeaderboardPage() {
       ) : (
         <>
           {/* Podium — rank 1, 2, 3 left to right, uniform alignment */}
-          <div className="grid gap-4 md:grid-cols-3 items-stretch">
+          <div className="grid auto-rows-fr gap-4 md:grid-cols-3">
             {top3.map((e, idx) => {
               const rank = idx + 1;
               return (
@@ -257,10 +257,10 @@ function PodiumCard({ entry, rank, isMe }: { entry: Entry; rank: number; isMe: b
     : "from-warning/40 to-warning/10";
 
   return (
-    <motion.div layoutId={`pod-${entry.user_id}`} layout transition={{ type: "spring", stiffness: 250, damping: 28 }} className="h-full flex">
-      <Card className={cn("relative w-full p-6 glass shadow-card overflow-hidden flex flex-col", rank === 1 && "border-primary/40")}>
+    <motion.div layoutId={`pod-${entry.user_id}`} layout transition={{ type: "spring", stiffness: 250, damping: 28 }} className="h-full min-h-64 flex">
+      <Card className={cn("relative w-full h-full p-6 glass shadow-card overflow-hidden flex flex-col", rank === 1 && "border-primary/40")}>
         <div className={cn("absolute -top-12 -right-12 size-40 rounded-full opacity-30 bg-gradient-to-br blur-2xl", accentClass)} />
-        <div className="relative flex flex-col items-center text-center flex-1">
+        <div className="relative flex min-h-0 flex-1 flex-col items-center text-center">
           <div className={cn(
             "size-9 rounded-full flex items-center justify-center mb-3 bg-gradient-to-br",
             accentClass
@@ -272,11 +272,11 @@ function PodiumCard({ entry, rank, isMe }: { entry: Entry; rank: number; isMe: b
               {initials}
             </AvatarFallback>
           </Avatar>
-          <div className="mt-3 font-display font-semibold truncate w-full flex items-center justify-center gap-2">
-            {entry.display_name}
+          <div className="mt-3 flex w-full min-h-6 items-center justify-center gap-2 font-display font-semibold">
+            <span className="min-w-0 truncate">{entry.display_name}</span>
             {isMe && <Badge variant="outline" className="text-xs border-primary/30 text-primary">You</Badge>}
           </div>
-          <div className="mt-1 text-xs text-muted-foreground">
+          <div className="mt-1 min-h-4 text-xs text-muted-foreground">
             {entry.tasks_completed} task{entry.tasks_completed !== 1 ? "s" : ""} · Rank #{rank}
           </div>
           <div className="mt-auto pt-4 font-display text-3xl font-bold tabular-nums text-gradient">
