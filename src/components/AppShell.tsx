@@ -21,12 +21,24 @@ export function AppShell({ children }: { children: ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const navItems =
+  // Role-specific tab appears FIRST, before the shared Dashboard tab.
+  const roleNav =
     role === "admin"
-      ? [...baseNav, { to: "/admin", label: "Admin", icon: Shield }]
+      ? [{ to: "/admin", label: "Admin", icon: Shield }]
       : role === "manager"
-        ? [...baseNav, { to: "/admin", label: "Team", icon: Briefcase }]
-        : baseNav;
+        ? [{ to: "/admin", label: "Manager", icon: Briefcase }]
+        : role === "support_engineer"
+          ? [{ to: "/tasks", label: "Support Engineer", icon: Headphones }]
+          : [];
+
+  // For support engineers the role tab points to /tasks (same as Tasks),
+  // so drop the duplicate Tasks entry to avoid two identical links.
+  const filteredBase =
+    role === "support_engineer"
+      ? baseNav.filter((n) => n.to !== "/tasks")
+      : baseNav;
+
+  const navItems = [...roleNav, ...filteredBase];
 
   const roleLabel =
     role === "admin"
