@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, ListChecks, Trophy, LogOut, Moon, Sun, Sparkles, Shield, Briefcase } from "lucide-react";
+import { LayoutDashboard, ListChecks, Trophy, LogOut, Moon, Sun, Sparkles, Shield, Briefcase, Headphones } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/lib/theme";
 import { Button } from "@/components/ui/button";
