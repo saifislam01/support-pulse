@@ -53,6 +53,8 @@ function AdminPage() {
   const [delta, setDelta] = useState("");
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [roleMap, setRoleMap] = useState<Record<string, Role>>({});
+  const [updatingRole, setUpdatingRole] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
