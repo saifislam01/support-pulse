@@ -48,8 +48,8 @@ function AdminPage() {
 
   useEffect(() => {
     if (authLoading) return;
-    if (role !== "admin") {
-      toast.error("Admin access required");
+    if (role !== "admin" && role !== "manager") {
+      toast.error("Admin or manager access required");
       navigate({ to: "/dashboard" });
     }
   }, [role, authLoading, navigate]);
@@ -76,7 +76,7 @@ function AdminPage() {
   };
 
   useEffect(() => {
-    if (role === "admin") load();
+    if (role === "admin" || role === "manager") load();
   }, [role]);
 
   const submitAdjust = async () => {
@@ -108,7 +108,7 @@ function AdminPage() {
 
   const top = useMemo(() => engineers.slice(0, 3), [engineers]);
 
-  if (authLoading || role !== "admin") {
+  if (authLoading || (role !== "admin" && role !== "manager")) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="size-5 animate-spin text-muted-foreground" />
@@ -116,18 +116,22 @@ function AdminPage() {
     );
   }
 
+  const isAdmin = role === "admin";
+
   return (
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Shield className="size-3.5" /> Admin console
+            <Shield className="size-3.5" /> {isAdmin ? "Admin" : "Manager"} console
           </div>
-          <h1 className="font-display text-3xl md:text-4xl font-bold">System overview</h1>
+          <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-tight">
+            {isAdmin ? "System overview" : "Team overview"}
+          </h1>
         </div>
-        <Badge variant="outline" className="gap-1.5 border-accent/40 text-accent">
+        <Badge variant="outline" className="gap-1.5 border-primary/30 text-primary">
           <Shield className="size-3.5" />
-          Admin
+          {isAdmin ? "Admin" : "Manager"}
         </Badge>
       </header>
 

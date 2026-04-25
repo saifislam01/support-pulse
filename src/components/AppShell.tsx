@@ -93,7 +93,9 @@ export function AppShell({ children }: { children: ReactNode }) {
               <div className="text-sm font-medium truncate">
                 {user?.user_metadata?.display_name ?? user?.email?.split("@")[0]}
               </div>
-              <div className="text-xs text-muted-foreground truncate">{user?.email}</div>
+              <div className="text-xs text-muted-foreground truncate">
+                {roleLabel ?? user?.email}
+              </div>
             </div>
             <NotificationBell />
           </div>
