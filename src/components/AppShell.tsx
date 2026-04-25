@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, ListChecks, Trophy, LogOut, Moon, Sun, Sparkles, Shield } from "lucide-react";
+import { LayoutDashboard, ListChecks, Trophy, LogOut, Moon, Sun, Sparkles, Shield, Briefcase } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/lib/theme";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,18 @@ export function AppShell({ children }: { children: ReactNode }) {
   const navItems =
     role === "admin"
       ? [...baseNav, { to: "/admin", label: "Admin", icon: Shield }]
-      : baseNav;
+      : role === "manager"
+        ? [...baseNav, { to: "/admin", label: "Team", icon: Briefcase }]
+        : baseNav;
+
+  const roleLabel =
+    role === "admin"
+      ? "Admin"
+      : role === "manager"
+        ? "Manager"
+        : role === "support_engineer"
+          ? "Support Engineer"
+          : null;
 
   const handleSignOut = async () => {
     await signOut();
@@ -82,7 +93,9 @@ export function AppShell({ children }: { children: ReactNode }) {
               <div className="text-sm font-medium truncate">
                 {user?.user_metadata?.display_name ?? user?.email?.split("@")[0]}
               </div>
-              <div className="text-xs text-muted-foreground truncate">{user?.email}</div>
+              <div className="text-xs text-muted-foreground truncate">
+                {roleLabel ?? user?.email}
+              </div>
             </div>
             <NotificationBell />
           </div>
