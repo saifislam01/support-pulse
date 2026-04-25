@@ -126,6 +126,29 @@ function AdminPage() {
     load();
   };
 
+  const changeRole = async (userId: string, newRole: Role) => {
+    const previous = roleMap[userId];
+    if (previous === newRole) return;
+    setUpdatingRole(userId);
+    // Optimistic
+    setRoleMap((m) => ({ ...m, [userId]: newRole }));
+    const { error: delErr } = await supabase.from("user_roles").delete().eq("user_id", userId);
+    if (delErr) {
+      setUpdatingRole(null);
+      setRoleMap((m) => ({ ...m, [userId]: previous }));
+      toast.error(delErr.message);
+      return;
+    }
+    const { error: insErr } = await supabase.from("user_roles").insert({ user_id: userId, role: newRole });
+    setUpdatingRole(null);
+    if (insErr) {
+      setRoleMap((m) => ({ ...m, [userId]: previous }));
+      toast.error(insErr.message);
+      return;
+    }
+    toast.success(`Role updated to ${ROLE_LABEL[newRole]}`);
+  };
+
   const top = useMemo(() => engineers.slice(0, 3), [engineers]);
 
   if (authLoading || (role !== "admin" && role !== "manager")) {
