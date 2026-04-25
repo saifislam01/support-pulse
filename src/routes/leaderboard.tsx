@@ -183,15 +183,12 @@ function LeaderboardPage() {
         </Card>
       ) : (
         <>
-          {/* Podium */}
-          <div className="grid gap-4 md:grid-cols-3">
-            {[1, 0, 2].map((idx) => {
-              const e = top3[idx];
-              if (!e) return <div key={idx} />;
+          {/* Podium — rank 1, 2, 3 left to right, uniform alignment */}
+          <div className="grid gap-4 md:grid-cols-3 items-stretch">
+            {top3.map((e, idx) => {
               const rank = idx + 1;
-              const heights = ["md:mt-0", "md:-mt-4", "md:mt-4"];
               return (
-                <PodiumCard key={e.user_id} entry={e} rank={rank} className={heights[idx]} isMe={e.user_id === user?.id} />
+                <PodiumCard key={e.user_id} entry={e} rank={rank} isMe={e.user_id === user?.id} />
               );
             })}
           </div>
