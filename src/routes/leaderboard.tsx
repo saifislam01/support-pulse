@@ -183,15 +183,12 @@ function LeaderboardPage() {
         </Card>
       ) : (
         <>
-          {/* Podium */}
-          <div className="grid gap-4 md:grid-cols-3">
-            {[1, 0, 2].map((idx) => {
-              const e = top3[idx];
-              if (!e) return <div key={idx} />;
+          {/* Podium — rank 1, 2, 3 left to right, uniform alignment */}
+          <div className="grid gap-4 md:grid-cols-3 items-stretch">
+            {top3.map((e, idx) => {
               const rank = idx + 1;
-              const heights = ["md:mt-0", "md:-mt-4", "md:mt-4"];
               return (
-                <PodiumCard key={e.user_id} entry={e} rank={rank} className={heights[idx]} isMe={e.user_id === user?.id} />
+                <PodiumCard key={e.user_id} entry={e} rank={rank} isMe={e.user_id === user?.id} />
               );
             })}
           </div>
@@ -250,7 +247,7 @@ function LeaderboardPage() {
   );
 }
 
-function PodiumCard({ entry, rank, className, isMe }: { entry: Entry; rank: number; className?: string; isMe: boolean }) {
+function PodiumCard({ entry, rank, isMe }: { entry: Entry; rank: number; isMe: boolean }) {
   const initials = entry.display_name.split(" ").map((s) => s[0]).join("").slice(0, 2).toUpperCase();
   const RankIcon = rank === 1 ? Crown : rank === 2 ? Medal : Flame;
   const accentClass = rank === 1
@@ -260,8 +257,8 @@ function PodiumCard({ entry, rank, className, isMe }: { entry: Entry; rank: numb
     : "from-warning/40 to-warning/10";
 
   return (
-    <motion.div layoutId={`pod-${entry.user_id}`} layout transition={{ type: "spring", stiffness: 250, damping: 28 }} className={className}>
-      <Card className={cn("relative p-6 glass shadow-card overflow-hidden", rank === 1 && "border-primary/40")}>
+    <motion.div layoutId={`pod-${entry.user_id}`} layout transition={{ type: "spring", stiffness: 250, damping: 28 }} className="h-full">
+      <Card className={cn("relative h-full p-6 glass shadow-card overflow-hidden", rank === 1 && "border-primary/40")}>
         <div className={cn("absolute -top-12 -right-12 size-40 rounded-full opacity-30 bg-gradient-to-br blur-2xl", accentClass)} />
         <div className="relative flex flex-col items-center text-center">
           <div className={cn(
