@@ -27,21 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let requestId = 0;
 
     const fetchRole = async (userId: string): Promise<Role> => {
-      const priority: Role[] = ["admin", "manager", "support_engineer"];
-
-      try {
-        for (const candidate of priority) {
-          const { data, error } = await supabase.rpc("has_role", {
-            _user_id: userId,
-            _role: candidate,
-          });
-          if (error) throw error;
-          if (data) return candidate;
-        }
-      } catch (error) {
-        console.error("Error checking role:", error);
-      }
-
+      // Single round-trip: fetch all roles for the user at once, then pick highest priority.
       const { data, error } = await supabase
         .from("user_roles")
         .select("role")
@@ -62,7 +48,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const applySession = async (sess: Session | null) => {
       const currentRequest = ++requestId;
-      setLoading(true);
       setSession(sess);
       setUser(sess?.user ?? null);
 
@@ -72,22 +57,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      // Don't block UI rendering on the role fetch — set loading false
+      // as soon as we know the user is signed in. Role resolves shortly after.
       const resolvedRole = await fetchRole(sess.user.id);
       if (!active || currentRequest !== requestId) return;
       setRole(resolvedRole);
       setLoading(false);
     };
 
+    let initialized = false;
+
     // Set up listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, sess) => {
+      // Skip the initial INITIAL_SESSION event — getSession() below handles it,
+      // and running both causes duplicate role queries on every page load.
+      if (!initialized) return;
       setTimeout(() => {
         void applySession(sess);
       }, 0);
     });
 
-    // THEN check existing session — also fetch role here, since
-    // onAuthStateChange does NOT fire for an already-restored session on reload.
+    // THEN check existing session
     supabase.auth.getSession().then(({ data: { session: sess } }) => {
+      initialized = true;
       void applySession(sess);
     });
 
