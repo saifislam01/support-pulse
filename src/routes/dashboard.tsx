@@ -205,13 +205,13 @@ function DashboardPage() {
                 <AreaChart data={trend} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="gradPoints" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="oklch(0.78 0.18 195)" stopOpacity={0.5} />
-                      <stop offset="100%" stopColor="oklch(0.78 0.18 195)" stopOpacity={0} />
+                      <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.4} />
+                      <stop offset="100%" stopColor="var(--primary)" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="oklch(1 0 0 / 0.06)" vertical={false} />
-                  <XAxis dataKey="day" stroke="oklch(0.7 0.02 240)" fontSize={12} tickLine={false} axisLine={false} />
-                  <YAxis stroke="oklch(0.7 0.02 240)" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                  <XAxis dataKey="day" stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
                   <Tooltip
                     contentStyle={{
                       background: "var(--popover)",
@@ -220,7 +220,7 @@ function DashboardPage() {
                       fontSize: "0.875rem",
                     }}
                   />
-                  <Area type="monotone" dataKey="completed" stroke="oklch(0.78 0.18 195)" strokeWidth={2.5} fill="url(#gradPoints)" />
+                  <Area type="monotone" dataKey="completed" stroke="var(--primary)" strokeWidth={2.5} fill="url(#gradPoints)" />
                 </AreaChart>
               </ResponsiveContainer>
             )}
@@ -242,8 +242,8 @@ function DashboardPage() {
                 />
                 <defs>
                   <linearGradient id="gradRing" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="oklch(0.78 0.18 195)" />
-                    <stop offset="100%" stopColor="oklch(0.85 0.21 130)" />
+                    <stop offset="0%" stopColor="var(--primary)" />
+                    <stop offset="100%" stopColor="var(--accent)" />
                   </linearGradient>
                 </defs>
               </svg>
