@@ -257,10 +257,10 @@ function PodiumCard({ entry, rank, isMe }: { entry: Entry; rank: number; isMe: b
     : "from-warning/40 to-warning/10";
 
   return (
-    <motion.div layoutId={`pod-${entry.user_id}`} layout transition={{ type: "spring", stiffness: 250, damping: 28 }} className="h-full">
-      <Card className={cn("relative h-full p-6 glass shadow-card overflow-hidden", rank === 1 && "border-primary/40")}>
+    <motion.div layoutId={`pod-${entry.user_id}`} layout transition={{ type: "spring", stiffness: 250, damping: 28 }} className="h-full flex">
+      <Card className={cn("relative w-full p-6 glass shadow-card overflow-hidden flex flex-col", rank === 1 && "border-primary/40")}>
         <div className={cn("absolute -top-12 -right-12 size-40 rounded-full opacity-30 bg-gradient-to-br blur-2xl", accentClass)} />
-        <div className="relative flex flex-col items-center text-center">
+        <div className="relative flex flex-col items-center text-center flex-1">
           <div className={cn(
             "size-9 rounded-full flex items-center justify-center mb-3 bg-gradient-to-br",
             accentClass
@@ -279,7 +279,7 @@ function PodiumCard({ entry, rank, isMe }: { entry: Entry; rank: number; isMe: b
           <div className="mt-1 text-xs text-muted-foreground">
             {entry.tasks_completed} task{entry.tasks_completed !== 1 ? "s" : ""} · Rank #{rank}
           </div>
-          <div className="mt-4 font-display text-3xl font-bold tabular-nums text-gradient">
+          <div className="mt-auto pt-4 font-display text-3xl font-bold tabular-nums text-gradient">
             {entry.total_points.toLocaleString()}
           </div>
           <div className="text-xs text-muted-foreground">points</div>
