@@ -66,13 +66,14 @@ function AdminPage() {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: lb }, { count: tasksTotal }, { count: tasksDone }] = await Promise.all([
+    const [{ data: lb }, { count: tasksTotal }, { count: tasksDone }, { data: roles }] = await Promise.all([
       supabase
         .from("leaderboard_all")
         .select("user_id, display_name, avatar_url, total_points, tasks_completed, has_high")
         .order("total_points", { ascending: false }),
       supabase.from("tasks").select("*", { count: "exact", head: true }),
       supabase.from("tasks").select("*", { count: "exact", head: true }).eq("status", "completed"),
+      supabase.from("user_roles").select("user_id, role"),
     ]);
     const list = (lb ?? []) as Engineer[];
     setEngineers(list);
@@ -82,6 +83,15 @@ function AdminPage() {
       completed: tasksDone ?? 0,
       points: list.reduce((s, e) => s + (e.total_points ?? 0), 0),
     });
+    const priority: Role[] = ["admin", "manager", "support_engineer"];
+    const map: Record<string, Role> = {};
+    for (const r of (roles ?? []) as { user_id: string; role: Role }[]) {
+      const current = map[r.user_id];
+      if (!current || priority.indexOf(r.role) < priority.indexOf(current)) {
+        map[r.user_id] = r.role;
+      }
+    }
+    setRoleMap(map);
     setLoading(false);
   };
 
