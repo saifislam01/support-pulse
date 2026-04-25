@@ -194,9 +194,11 @@ function AdminPage() {
                     <div className="font-display font-bold tabular-nums">{e.total_points ?? 0}</div>
                     <div className="text-[10px] text-muted-foreground uppercase tracking-wide">pts</div>
                   </div>
-                  <Button variant="outline" size="sm" className="press" onClick={() => setAdjustTarget(e)}>
-                    Adjust
-                  </Button>
+                  {isAdmin && (
+                    <Button variant="outline" size="sm" className="press" onClick={() => setAdjustTarget(e)}>
+                      Adjust
+                    </Button>
+                  )}
                 </div>
               );
             })}
