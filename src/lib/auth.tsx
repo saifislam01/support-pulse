@@ -33,9 +33,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const { data } = await supabase
             .from("user_roles")
             .select("role")
-            .eq("user_id", sess.user.id)
-            .maybeSingle();
-          setRole((data?.role as Role) ?? "support_engineer");
+            .eq("user_id", sess.user.id);
+          const roles = (data?.map((r) => r.role as Role)) ?? [];
+          // Priority: admin > manager > support_engineer
+          const resolved: Role = roles.includes("admin")
+            ? "admin"
+            : roles.includes("manager")
+              ? "manager"
+              : "support_engineer";
+          setRole(resolved);
         }, 0);
       } else {
         setRole(null);
