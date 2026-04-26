@@ -74,17 +74,20 @@ function AdminPage() {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: lb }, { count: tasksTotal }, { count: tasksDone }, { data: roles }] = await Promise.all([
-      supabase
-        .from("leaderboard_all")
-        .select("user_id, display_name, avatar_url, total_points, tasks_completed, has_high")
-        .order("total_points", { ascending: false }),
-      supabase.from("tasks").select("*", { count: "exact", head: true }),
-      supabase.from("tasks").select("*", { count: "exact", head: true }).eq("status", "completed"),
-      supabase.from("user_roles").select("user_id, role"),
-    ]);
+    const [{ data: lb }, { count: tasksTotal }, { count: tasksDone }, { data: roles }, { data: profiles }] =
+      await Promise.all([
+        supabase
+          .from("leaderboard_all")
+          .select("user_id, display_name, avatar_url, total_points, tasks_completed, has_high")
+          .order("total_points", { ascending: false }),
+        supabase.from("tasks").select("*", { count: "exact", head: true }),
+        supabase.from("tasks").select("*", { count: "exact", head: true }).eq("status", "completed"),
+        supabase.from("user_roles").select("user_id, role"),
+        supabase.from("profiles").select("id, display_name").order("display_name", { ascending: true }),
+      ]);
     const list = (lb ?? []) as Engineer[];
     setEngineers(list);
+    setAllUsers((profiles ?? []) as ManagedUser[]);
     setSystemTotals({
       engineers: list.length,
       tasks: tasksTotal ?? 0,
