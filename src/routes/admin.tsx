@@ -13,7 +13,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { KpiCard } from "@/components/KpiCard";
-import { Shield, Users, Trophy, ListChecks, Plus, Minus, Loader2, UserCog } from "lucide-react";
+import { Shield, Users, Trophy, ListChecks, Plus, Minus, Loader2, UserCog, ShieldCheck, Briefcase, Wrench, Search } from "lucide-react";
 
 type Role = "admin" | "manager" | "support_engineer";
 const ROLE_LABEL: Record<Role, string> = {
