@@ -49,7 +49,7 @@ type ManagedUser = {
 };
 
 function AdminPage() {
-  const { role, loading: authLoading } = useAuth();
+  const { user, role, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [engineers, setEngineers] = useState<Engineer[]>([]);
   const [allUsers, setAllUsers] = useState<ManagedUser[]>([]);
@@ -65,12 +65,17 @@ function AdminPage() {
   const [roleFilter, setRoleFilter] = useState<Role | "all">("all");
 
   useEffect(() => {
+    // Wait until auth is ready AND role has resolved for the signed-in user.
+    // Without this, role is briefly null after sign-in (it resolves async),
+    // and the access check would wrongly bounce admins/managers to /dashboard.
     if (authLoading) return;
+    if (!user) return; // RequireAuth handles redirect to /login
+    if (role === null) return; // role still resolving
     if (role !== "admin" && role !== "manager") {
       toast.error("Admin or manager access required");
       navigate({ to: "/dashboard" });
     }
-  }, [role, authLoading, navigate]);
+  }, [user, role, authLoading, navigate]);
 
   const load = async () => {
     setLoading(true);
