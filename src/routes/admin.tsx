@@ -186,7 +186,7 @@ function AdminPage() {
     return c;
   }, [allUsers, roleMap]);
 
-  if (authLoading || (role !== "admin" && role !== "manager")) {
+  if (authLoading || role === null || (role !== "admin" && role !== "manager")) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="size-5 animate-spin text-muted-foreground" />
