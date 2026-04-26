@@ -13,7 +13,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { KpiCard } from "@/components/KpiCard";
-import { Shield, Users, Trophy, ListChecks, Plus, Minus, Loader2, UserCog } from "lucide-react";
+import { Shield, Users, Trophy, ListChecks, Plus, Minus, Loader2, UserCog, ShieldCheck, Briefcase, Wrench, Search } from "lucide-react";
 
 type Role = "admin" | "manager" | "support_engineer";
 const ROLE_LABEL: Record<Role, string> = {
@@ -43,10 +43,16 @@ type Engineer = {
   has_high: number;
 };
 
+type ManagedUser = {
+  id: string;
+  display_name: string | null;
+};
+
 function AdminPage() {
   const { role, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [engineers, setEngineers] = useState<Engineer[]>([]);
+  const [allUsers, setAllUsers] = useState<ManagedUser[]>([]);
   const [systemTotals, setSystemTotals] = useState({ engineers: 0, tasks: 0, completed: 0, points: 0 });
   const [loading, setLoading] = useState(true);
   const [adjustTarget, setAdjustTarget] = useState<Engineer | null>(null);
@@ -55,6 +61,8 @@ function AdminPage() {
   const [submitting, setSubmitting] = useState(false);
   const [roleMap, setRoleMap] = useState<Record<string, Role>>({});
   const [updatingRole, setUpdatingRole] = useState<string | null>(null);
+  const [roleSearch, setRoleSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState<Role | "all">("all");
 
   useEffect(() => {
     if (authLoading) return;
@@ -66,17 +74,20 @@ function AdminPage() {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: lb }, { count: tasksTotal }, { count: tasksDone }, { data: roles }] = await Promise.all([
-      supabase
-        .from("leaderboard_all")
-        .select("user_id, display_name, avatar_url, total_points, tasks_completed, has_high")
-        .order("total_points", { ascending: false }),
-      supabase.from("tasks").select("*", { count: "exact", head: true }),
-      supabase.from("tasks").select("*", { count: "exact", head: true }).eq("status", "completed"),
-      supabase.from("user_roles").select("user_id, role"),
-    ]);
+    const [{ data: lb }, { count: tasksTotal }, { count: tasksDone }, { data: roles }, { data: profiles }] =
+      await Promise.all([
+        supabase
+          .from("leaderboard_all")
+          .select("user_id, display_name, avatar_url, total_points, tasks_completed, has_high")
+          .order("total_points", { ascending: false }),
+        supabase.from("tasks").select("*", { count: "exact", head: true }),
+        supabase.from("tasks").select("*", { count: "exact", head: true }).eq("status", "completed"),
+        supabase.from("user_roles").select("user_id, role"),
+        supabase.from("profiles").select("id, display_name").order("display_name", { ascending: true }),
+      ]);
     const list = (lb ?? []) as Engineer[];
     setEngineers(list);
+    setAllUsers((profiles ?? []) as ManagedUser[]);
     setSystemTotals({
       engineers: list.length,
       tasks: tasksTotal ?? 0,
@@ -151,6 +162,25 @@ function AdminPage() {
 
   const top = useMemo(() => engineers.slice(0, 3), [engineers]);
 
+  const filteredUsers = useMemo(() => {
+    const q = roleSearch.trim().toLowerCase();
+    return allUsers.filter((u) => {
+      const r = roleMap[u.id] ?? "support_engineer";
+      if (roleFilter !== "all" && r !== roleFilter) return false;
+      if (q && !(u.display_name ?? "").toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [allUsers, roleMap, roleSearch, roleFilter]);
+
+  const roleCounts = useMemo(() => {
+    const c = { admin: 0, manager: 0, support_engineer: 0 };
+    for (const u of allUsers) {
+      const r = (roleMap[u.id] ?? "support_engineer") as Role;
+      c[r]++;
+    }
+    return c;
+  }, [allUsers, roleMap]);
+
   if (authLoading || (role !== "admin" && role !== "manager")) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -207,53 +237,104 @@ function AdminPage() {
 
       {isAdmin && (
         <Card className="p-6 glass shadow-card">
-          <div className="flex items-baseline justify-between mb-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-2 mb-4">
             <div className="flex items-center gap-2">
               <UserCog className="size-4 text-primary" />
               <h3 className="font-display text-lg font-semibold">Manage roles</h3>
             </div>
-            <span className="text-xs text-muted-foreground">Assign roles to registered users</span>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Badge variant="outline" className="gap-1"><ShieldCheck className="size-3" />{roleCounts.admin} Admin</Badge>
+              <Badge variant="outline" className="gap-1"><Briefcase className="size-3" />{roleCounts.manager} Manager</Badge>
+              <Badge variant="outline" className="gap-1"><Wrench className="size-3" />{roleCounts.support_engineer} Engineer</Badge>
+            </div>
           </div>
+
+          <div className="flex flex-wrap items-center gap-2 mb-4">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={roleSearch}
+                onChange={(e) => setRoleSearch(e.target.value)}
+                placeholder="Search registered users by name..."
+                className="pl-9"
+              />
+            </div>
+            <Select value={roleFilter} onValueChange={(v) => setRoleFilter(v as Role | "all")}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All roles</SelectItem>
+                <SelectItem value="admin">Admins</SelectItem>
+                <SelectItem value="manager">Managers</SelectItem>
+                <SelectItem value="support_engineer">Support engineers</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           {loading ? (
             <div className="py-12 flex justify-center">
               <Loader2 className="size-5 animate-spin text-muted-foreground" />
             </div>
-          ) : engineers.length === 0 ? (
-            <div className="py-12 text-center text-sm text-muted-foreground">No users yet.</div>
+          ) : filteredUsers.length === 0 ? (
+            <div className="py-12 text-center text-sm text-muted-foreground">No users match your filters.</div>
           ) : (
             <div className="divide-y divide-border">
-              {engineers.map((e) => {
-                const initials = (e.display_name ?? "U").slice(0, 2).toUpperCase();
-                const current = roleMap[e.user_id] ?? "support_engineer";
+              {filteredUsers.map((u) => {
+                const initials = (u.display_name ?? "U").slice(0, 2).toUpperCase();
+                const current = (roleMap[u.id] ?? "support_engineer") as Role;
+                const isUpdating = updatingRole === u.id;
                 return (
-                  <div key={e.user_id} className="flex items-center gap-3 py-3">
+                  <div key={u.id} className="flex flex-wrap items-center gap-3 py-3">
                     <Avatar className="size-9">
                       <AvatarFallback className="bg-primary/15 text-primary text-xs font-semibold">
                         {initials}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium truncate">{e.display_name ?? "Unnamed"}</div>
-                      <div className="text-xs text-muted-foreground">Current: {ROLE_LABEL[current]}</div>
+                    <div className="flex-1 min-w-[160px]">
+                      <div className="text-sm font-medium truncate">{u.display_name ?? "Unnamed"}</div>
+                      <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+                        Current:
+                        <Badge
+                          variant="outline"
+                          className={
+                            current === "admin"
+                              ? "border-primary/40 text-primary"
+                              : current === "manager"
+                                ? "border-accent/40 text-accent"
+                                : "border-border"
+                          }
+                        >
+                          {ROLE_LABEL[current]}
+                        </Badge>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Select
-                        value={current}
-                        onValueChange={(v) => changeRole(e.user_id, v as Role)}
-                        disabled={updatingRole === e.user_id}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <Button
+                        size="sm"
+                        variant={current === "support_engineer" ? "default" : "outline"}
+                        disabled={isUpdating || current === "support_engineer"}
+                        onClick={() => changeRole(u.id, "support_engineer")}
                       >
-                        <SelectTrigger className="w-[180px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="manager">Manager</SelectItem>
-                          <SelectItem value="support_engineer">Support engineer</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      {updatingRole === e.user_id && (
-                        <Loader2 className="size-4 animate-spin text-muted-foreground" />
-                      )}
+                        <Wrench className="size-3.5" /> Engineer
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={current === "manager" ? "default" : "outline"}
+                        disabled={isUpdating || current === "manager"}
+                        onClick={() => changeRole(u.id, "manager")}
+                      >
+                        <Briefcase className="size-3.5" /> Manager
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={current === "admin" ? "default" : "outline"}
+                        disabled={isUpdating || current === "admin"}
+                        onClick={() => changeRole(u.id, "admin")}
+                      >
+                        <ShieldCheck className="size-3.5" /> Admin
+                      </Button>
+                      {isUpdating && <Loader2 className="size-4 animate-spin text-muted-foreground" />}
                     </div>
                   </div>
                 );
