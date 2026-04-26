@@ -162,6 +162,25 @@ function AdminPage() {
 
   const top = useMemo(() => engineers.slice(0, 3), [engineers]);
 
+  const filteredUsers = useMemo(() => {
+    const q = roleSearch.trim().toLowerCase();
+    return allUsers.filter((u) => {
+      const r = roleMap[u.id] ?? "support_engineer";
+      if (roleFilter !== "all" && r !== roleFilter) return false;
+      if (q && !(u.display_name ?? "").toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [allUsers, roleMap, roleSearch, roleFilter]);
+
+  const roleCounts = useMemo(() => {
+    const c = { admin: 0, manager: 0, support_engineer: 0 };
+    for (const u of allUsers) {
+      const r = (roleMap[u.id] ?? "support_engineer") as Role;
+      c[r]++;
+    }
+    return c;
+  }, [allUsers, roleMap]);
+
   if (authLoading || (role !== "admin" && role !== "manager")) {
     return (
       <div className="flex items-center justify-center py-20">
