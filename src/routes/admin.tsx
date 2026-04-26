@@ -43,10 +43,16 @@ type Engineer = {
   has_high: number;
 };
 
+type ManagedUser = {
+  id: string;
+  display_name: string | null;
+};
+
 function AdminPage() {
   const { role, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [engineers, setEngineers] = useState<Engineer[]>([]);
+  const [allUsers, setAllUsers] = useState<ManagedUser[]>([]);
   const [systemTotals, setSystemTotals] = useState({ engineers: 0, tasks: 0, completed: 0, points: 0 });
   const [loading, setLoading] = useState(true);
   const [adjustTarget, setAdjustTarget] = useState<Engineer | null>(null);
@@ -55,6 +61,8 @@ function AdminPage() {
   const [submitting, setSubmitting] = useState(false);
   const [roleMap, setRoleMap] = useState<Record<string, Role>>({});
   const [updatingRole, setUpdatingRole] = useState<string | null>(null);
+  const [roleSearch, setRoleSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState<Role | "all">("all");
 
   useEffect(() => {
     if (authLoading) return;
