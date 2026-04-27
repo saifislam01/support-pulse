@@ -13,6 +13,7 @@ import type { ReactNode } from "react";
 const baseNav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/tasks", label: "Tasks", icon: ListChecks },
+  { to: "/sumup", label: "Sum-Up", icon: FileText },
   { to: "/leaderboard", label: "Leaderboard", icon: Trophy },
 ];
 
