@@ -79,14 +79,13 @@ function AdminPage() {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: lb }, { count: tasksTotal }, { count: tasksDone }, { data: roles }, { data: profiles }] =
+    const [{ data: lb }, { count: tasksTotal }, { data: roles }, { data: profiles }] =
       await Promise.all([
         supabase
           .from("leaderboard_all")
           .select("user_id, display_name, avatar_url, total_points, tasks_completed, has_high")
           .order("total_points", { ascending: false }),
         supabase.from("tasks").select("*", { count: "exact", head: true }),
-        supabase.from("tasks").select("*", { count: "exact", head: true }).eq("status", "completed"),
         supabase.from("user_roles").select("user_id, role"),
         supabase.from("profiles").select("id, display_name").order("display_name", { ascending: true }),
       ]);
@@ -96,7 +95,7 @@ function AdminPage() {
     setSystemTotals({
       engineers: list.length,
       tasks: tasksTotal ?? 0,
-      completed: tasksDone ?? 0,
+      completed: list.reduce((s, e) => s + (e.tasks_completed ?? 0), 0),
       points: list.reduce((s, e) => s + (e.total_points ?? 0), 0),
     });
     const priority: Role[] = ["admin", "manager", "support_engineer"];
