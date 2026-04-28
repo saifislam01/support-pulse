@@ -60,7 +60,7 @@ export function AdminDashboard() {
         managers: r.filter((x) => x.role === "manager").length,
         supports: r.filter((x) => x.role === "support_engineer").length,
         tasksTotal: (tasksTotal ?? 0) + (dailyTemplates ?? 0) * totalUsers,
-        tasksDone: (tasksDone ?? 0) + (dailyDone ?? 0),
+        tasksDone: list.reduce((s, e) => s + (e.tasks_completed ?? 0), 0),
         points: list.reduce((s, e) => s + (e.total_points ?? 0), 0),
       });
       setLoading(false);
