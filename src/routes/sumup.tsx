@@ -80,8 +80,8 @@ function SumUpPage() {
         (parseInt(f.ticketsAssigned || "0") || 0) +
         (parseInt(f.ticketsUnassigned || "0") || 0);
       if (total > 0) lines.push(`• Replied to \`${String(total).padStart(2, "0")}\` tickets`);
-      if (f.ticketsAssigned) lines.push(`    ◦ Assigned - \`${String(f.ticketsAssigned).padStart(2, "0")}\``);
-      if (f.ticketsUnassigned) lines.push(`    ◦ Unassigned - \`${String(f.ticketsUnassigned).padStart(2, "0")}\``);
+      if (f.ticketsAssigned) lines.push(`   ◦ Assigned - \`${String(f.ticketsAssigned).padStart(2, "0")}\``);
+      if (f.ticketsUnassigned) lines.push(`   ◦ Unassigned - \`${String(f.ticketsUnassigned).padStart(2, "0")}\``);
       lines.push("");
     }
 
