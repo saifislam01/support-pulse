@@ -31,27 +31,36 @@ export function AdminDashboard() {
   useEffect(() => {
     let mounted = true;
     (async () => {
-      const [{ data: lb }, { data: roles }, { count: tasksTotal }, { count: tasksDone }] =
-        await Promise.all([
-          supabase
-            .from("leaderboard_all")
-            .select("user_id, display_name, total_points, tasks_completed")
-            .order("total_points", { ascending: false }),
-          supabase.from("user_roles").select("role"),
-          supabase.from("tasks").select("*", { count: "exact", head: true }),
-          supabase.from("tasks").select("*", { count: "exact", head: true }).eq("status", "completed"),
-        ]);
+      const [
+        { data: lb },
+        { data: roles },
+        { count: tasksTotal },
+        { count: tasksDone },
+        { count: dailyDone },
+        { count: dailyTemplates },
+      ] = await Promise.all([
+        supabase
+          .from("leaderboard_all")
+          .select("user_id, display_name, total_points, tasks_completed")
+          .order("total_points", { ascending: false }),
+        supabase.from("user_roles").select("role"),
+        supabase.from("tasks").select("*", { count: "exact", head: true }),
+        supabase.from("tasks").select("*", { count: "exact", head: true }).eq("status", "completed"),
+        supabase.from("daily_task_completions").select("*", { count: "exact", head: true }),
+        supabase.from("daily_task_templates").select("*", { count: "exact", head: true }).eq("active", true),
+      ]);
       if (!mounted) return;
       const list = (lb ?? []) as Engineer[];
       setEngineers(list);
       const r = (roles ?? []) as { role: string }[];
+      const totalUsers = r.length;
       setCounts({
-        total: r.length,
+        total: totalUsers,
         admins: r.filter((x) => x.role === "admin").length,
         managers: r.filter((x) => x.role === "manager").length,
         supports: r.filter((x) => x.role === "support_engineer").length,
-        tasksTotal: tasksTotal ?? 0,
-        tasksDone: tasksDone ?? 0,
+        tasksTotal: (tasksTotal ?? 0) + (dailyTemplates ?? 0) * totalUsers,
+        tasksDone: (tasksDone ?? 0) + (dailyDone ?? 0),
         points: list.reduce((s, e) => s + (e.total_points ?? 0), 0),
       });
       setLoading(false);

@@ -67,87 +67,91 @@ function SumUpPage() {
     setF((prev) => ({ ...prev, [key]: e.target.value }));
   };
 
-  const buildMarkdown = () => {
+  // Slack-flavored output: *bold* (single asterisk), • bullets, backtick code
+  const buildSlack = () => {
     const lines: string[] = [];
-    lines.push(`**Summary of Activities:** ${today}`);
+    lines.push(`*Summary of Activities:* ${today}`);
     lines.push("");
 
-    const hasTickets = f.ticketsAssigned || f.ticketsUnassigned || f.liveChats;
+    const hasTickets = f.ticketsAssigned || f.ticketsUnassigned;
     if (hasTickets) {
-      lines.push(`📥 **Tickets:**`);
+      lines.push(`📥 *Tickets:*`);
       const total =
         (parseInt(f.ticketsAssigned || "0") || 0) +
         (parseInt(f.ticketsUnassigned || "0") || 0);
-      if (total > 0) lines.push(`- Replied to \`${String(total).padStart(2, "0")}\` tickets`);
-      if (f.ticketsAssigned) lines.push(`  - Assigned - \`${String(f.ticketsAssigned).padStart(2, "0")}\``);
-      if (f.ticketsUnassigned) lines.push(`  - Unassigned - \`${String(f.ticketsUnassigned).padStart(2, "0")}\``);
+      if (total > 0) lines.push(`• Replied to \`${String(total).padStart(2, "0")}\` tickets`);
+      if (f.ticketsAssigned) lines.push(`    ◦ Assigned - \`${String(f.ticketsAssigned).padStart(2, "0")}\``);
+      if (f.ticketsUnassigned) lines.push(`    ◦ Unassigned - \`${String(f.ticketsUnassigned).padStart(2, "0")}\``);
       lines.push("");
     }
 
     if (f.liveChats) {
-      lines.push(`💬 **Live chats:**`);
-      lines.push(`- Reviewed \`${String(f.liveChats).padStart(2, "0")}\` live chats`);
+      lines.push(`💬 *Live chats:*`);
+      lines.push(`• Reviewed \`${String(f.liveChats).padStart(2, "0")}\` live chats`);
       lines.push("");
     }
 
     if (f.githubIssues || f.facebookReplies || f.issuesAssigned) {
-      lines.push(`🌐 **Community & Platform Contributions:**`);
-      if (f.githubIssues) lines.push(`- Created/Replied \`${f.githubIssues}\` GitHub issues`);
-      if (f.facebookReplies) lines.push(`- Replied to \`${f.facebookReplies}\` Facebook posts/comments`);
-      if (f.issuesAssigned) lines.push(`- Assigned \`${f.issuesAssigned}\` issues`);
+      lines.push(`🌐 *Community & Platform Contributions:*`);
+      if (f.githubIssues) lines.push(`• Created/Replied \`${f.githubIssues}\` GitHub issues`);
+      if (f.facebookReplies) lines.push(`• Replied to \`${f.facebookReplies}\` Facebook posts/comments`);
+      if (f.issuesAssigned) lines.push(`• Assigned \`${f.issuesAssigned}\` issues`);
       lines.push("");
     }
 
     if (f.newDocs || f.updatedDocs || f.kbArticles) {
-      lines.push(`📚 **Documentation:**`);
-      if (f.newDocs) lines.push(`- New documentation articles: \`${f.newDocs}\``);
-      if (f.updatedDocs) lines.push(`- Updated documentation articles: \`${f.updatedDocs}\``);
-      if (f.kbArticles) lines.push(`- Knowledgebase articles published: \`${f.kbArticles}\``);
+      lines.push(`📚 *Documentation:*`);
+      if (f.newDocs) lines.push(`• New documentation articles: \`${f.newDocs}\``);
+      if (f.updatedDocs) lines.push(`• Updated documentation articles: \`${f.updatedDocs}\``);
+      if (f.kbArticles) lines.push(`• Knowledgebase articles published: \`${f.kbArticles}\``);
       lines.push("");
     }
 
     if (f.rdTopics || f.qaTopics) {
-      lines.push(`🔬 **Research & Development:**`);
-      if (f.rdTopics) lines.push(`- R&D topics documented: \`${f.rdTopics}\``);
-      if (f.qaTopics) lines.push(`- QA topics: \`${f.qaTopics}\``);
+      lines.push(`🔬 *Research & Development:*`);
+      if (f.rdTopics) lines.push(`• R&D topics documented: \`${f.rdTopics}\``);
+      if (f.qaTopics) lines.push(`• QA topics: \`${f.qaTopics}\``);
       lines.push("");
     }
 
     if (f.meetings) {
-      lines.push(`📹 **Meeting:**`);
-      lines.push(`- Attended \`${f.meetings}\` meetings`);
+      lines.push(`📹 *Meeting:*`);
+      lines.push(`• Attended \`${f.meetings}\` meetings`);
       lines.push("");
     }
 
     if (f.collaborations) {
-      lines.push(`🤝 **Collaboration:**`);
-      lines.push(`- \`${f.collaborations}\` collaborations`);
+      lines.push(`🤝 *Collaboration:*`);
+      lines.push(`• \`${f.collaborations}\` collaborations`);
       lines.push("");
     }
 
     if (f.learning || f.otfTasks) {
-      lines.push(`📖 **Learning & Additional Tasks:**`);
-      if (f.learning) lines.push(`- Learning: ${f.learning}`);
-      if (f.otfTasks) lines.push(`- OTF / Additional Tasks: \`${f.otfTasks}\``);
+      lines.push(`📖 *Learning & Additional Tasks:*`);
+      if (f.learning) lines.push(`• Learning: ${f.learning}`);
+      if (f.otfTasks) lines.push(`• OTF / Additional Tasks: \`${f.otfTasks}\``);
       lines.push("");
     }
 
     if (f.notes) {
-      lines.push(`📝 **Notes:**`);
+      lines.push(`📝 *Notes:*`);
       lines.push(f.notes);
       lines.push("");
     }
 
-    lines.push(`**On the next working day, I have plans to:**`);
+    lines.push(`*On the next working day, I have plans to:*`);
     lines.push(`Reply to assigned & unassigned tickets, review live chats, follow up on unresolved issues, respond to community posts, update documentation, and continue scheduled learning.`);
 
     return lines.join("\n");
   };
 
+  // Markdown (GitHub-style) for file download
+  const buildMarkdown = () => buildSlack().replace(/^\*([^*\n]+)\*/gm, "**$1**").replace(/^• /gm, "- ").replace(/^    ◦ /gm, "  - ");
+
   const handleCopy = async () => {
-    const md = buildMarkdown();
-    await navigator.clipboard.writeText(md);
-    toast.success("Sum-up copied to clipboard!");
+    const text = buildSlack();
+    await navigator.clipboard.writeText(text);
+    toast.success("Copied! Paste directly into Slack.");
   };
 
   const handleDownload = () => {
@@ -201,10 +205,10 @@ function SumUpPage() {
             <div>
               <h1 className="text-2xl md:text-3xl font-display font-bold flex items-center gap-2">
                 <FileText className="size-7 text-primary" />
-                Daily Sum-Up Generator
+                Sumup
               </h1>
               <p className="text-sm text-muted-foreground mt-1">
-                Fill what you completed today — preview updates live with the exact format & color.
+                Fill what you completed today — preview updates live, and copy is Slack-ready.
               </p>
             </div>
             <div className="flex gap-2 flex-wrap">
