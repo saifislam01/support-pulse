@@ -205,10 +205,10 @@ function SumUpPage() {
             <div>
               <h1 className="text-2xl md:text-3xl font-display font-bold flex items-center gap-2">
                 <FileText className="size-7 text-primary" />
-                Daily Sum-Up Generator
+                Sumup
               </h1>
               <p className="text-sm text-muted-foreground mt-1">
-                Fill what you completed today — preview updates live with the exact format & color.
+                Fill what you completed today — preview updates live, and copy is Slack-ready.
               </p>
             </div>
             <div className="flex gap-2 flex-wrap">
