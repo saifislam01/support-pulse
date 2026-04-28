@@ -146,7 +146,11 @@ function SumUpPage() {
   };
 
   // Markdown (GitHub-style) for file download
-  const buildMarkdown = () => buildSlack().replace(/^\*([^*\n]+)\*/gm, "**$1**").replace(/^• /gm, "- ").replace(/^    ◦ /gm, "  - ");
+  const buildMarkdown = () =>
+    buildSlack()
+      .replace(/^\*([^*\n]+)\*/gm, "**$1**")
+      .replace(/^• /gm, "- ")
+      .replace(/^   ◦ /gm, "  - ");
 
   const handleCopy = async () => {
     const text = buildSlack();
