@@ -243,10 +243,33 @@ export function TeamChat() {
       });
   }, [allDMs, teammates, user?.id, search]);
 
+  const sendTyping = (event: "typing" | "stop_typing") => {
+    const ch = typingChannelRef.current;
+    if (!ch || !user) return;
+    void ch.send({ type: "broadcast", event, payload: { from: user.id } });
+  };
+
+  const handleInputChange = (value: string) => {
+    setInput(value);
+    if (!value.trim()) {
+      sendTyping("stop_typing");
+      lastTypingSentRef.current = 0;
+      return;
+    }
+    const now = Date.now();
+    // Throttle to one typing broadcast per ~1.5s
+    if (now - lastTypingSentRef.current > 1500) {
+      sendTyping("typing");
+      lastTypingSentRef.current = now;
+    }
+  };
+
   const handleSend = async () => {
     const body = input.trim();
     if (!body || !user || !activePeerId) return;
     setInput("");
+    sendTyping("stop_typing");
+    lastTypingSentRef.current = 0;
     const { error } = await supabase
       .from("direct_messages")
       .insert({ sender_id: user.id, recipient_id: activePeerId, body });
