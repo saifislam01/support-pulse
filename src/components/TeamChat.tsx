@@ -438,17 +438,28 @@ export function TeamChat() {
                   const initials = teammate.display_name.slice(0, 2).toUpperCase();
                   const last = summary?.lastMsg;
                   const lastFromMe = last?.sender_id === user.id;
+                  const pres = presence[teammate.id];
+                  const isOnline = !!pres?.online;
                   return (
                     <button
                       key={teammate.id}
                       onClick={() => setActivePeerId(teammate.id)}
                       className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-sidebar-accent transition-colors text-left border-b border-border/50"
                     >
-                      <Avatar className="size-9 shrink-0">
-                        <AvatarFallback className="bg-primary/15 text-primary text-xs font-semibold">
-                          {initials}
-                        </AvatarFallback>
-                      </Avatar>
+                      <div className="relative shrink-0">
+                        <Avatar className="size-9">
+                          <AvatarFallback className="bg-primary/15 text-primary text-xs font-semibold">
+                            {initials}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span
+                          className={cn(
+                            "absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full ring-2 ring-background",
+                            isOnline ? "bg-emerald-500 shadow-[0_0_6px_rgb(16_185_129_/_0.7)]" : "bg-muted-foreground/40",
+                          )}
+                          title={isOnline ? "Online" : formatLastActive(pres?.lastActive ?? null)}
+                        />
+                      </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
                           <span className="text-sm font-medium truncate">{teammate.display_name}</span>
@@ -462,7 +473,9 @@ export function TeamChat() {
                         <div className="text-xs text-muted-foreground truncate">
                           {last
                             ? `${lastFromMe ? "You: " : ""}${last.body}`
-                            : "Tap to start a conversation"}
+                            : isOnline
+                              ? "Online · say hi"
+                              : formatLastActive(pres?.lastActive ?? null)}
                         </div>
                       </div>
                       {summary && summary.unread > 0 && (
