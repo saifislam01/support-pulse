@@ -38,9 +38,13 @@ export function TeamChat() {
   const [allDMs, setAllDMs] = useState<DM[]>([]); // for unread + last-message previews
   const [input, setInput] = useState("");
   const [search, setSearch] = useState("");
+  const [peerTyping, setPeerTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const openRef = useRef(open);
   const activePeerRef = useRef(activePeerId);
+  const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const typingClearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastTypingSentRef = useRef(0);
   openRef.current = open;
   activePeerRef.current = activePeerId;
 
