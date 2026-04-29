@@ -38,9 +38,13 @@ export function TeamChat() {
   const [allDMs, setAllDMs] = useState<DM[]>([]); // for unread + last-message previews
   const [input, setInput] = useState("");
   const [search, setSearch] = useState("");
+  const [peerTyping, setPeerTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const openRef = useRef(open);
   const activePeerRef = useRef(activePeerId);
+  const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const typingClearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastTypingSentRef = useRef(0);
   openRef.current = open;
   activePeerRef.current = activePeerId;
 
@@ -168,12 +172,45 @@ export function TeamChat() {
       .in("id", unreadIds);
   }, [allDMs, activePeerId, open, user?.id]);
 
+  // Per-conversation typing channel (broadcast)
+  useEffect(() => {
+    if (!user || !activePeerId) {
+      setPeerTyping(false);
+      return;
+    }
+    const room = `dm_typing_${[user.id, activePeerId].sort().join("_")}`;
+    const ch = supabase.channel(room, { config: { broadcast: { self: false } } });
+    ch.on("broadcast", { event: "typing" }, (payload) => {
+      const from = (payload.payload as { from?: string } | undefined)?.from;
+      if (from && from === activePeerRef.current) {
+        setPeerTyping(true);
+        if (typingClearTimerRef.current) clearTimeout(typingClearTimerRef.current);
+        typingClearTimerRef.current = setTimeout(() => setPeerTyping(false), 3000);
+      }
+    });
+    ch.on("broadcast", { event: "stop_typing" }, (payload) => {
+      const from = (payload.payload as { from?: string } | undefined)?.from;
+      if (from && from === activePeerRef.current) {
+        if (typingClearTimerRef.current) clearTimeout(typingClearTimerRef.current);
+        setPeerTyping(false);
+      }
+    });
+    ch.subscribe();
+    typingChannelRef.current = ch;
+    return () => {
+      typingChannelRef.current = null;
+      if (typingClearTimerRef.current) clearTimeout(typingClearTimerRef.current);
+      setPeerTyping(false);
+      void supabase.removeChannel(ch);
+    };
+  }, [user?.id, activePeerId]);
+
   // Auto-scroll
   useEffect(() => {
     if (open && activePeerId && scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, open, activePeerId]);
+  }, [messages, open, activePeerId, peerTyping]);
 
   const totalUnread = useMemo(() => {
     if (!user) return 0;
@@ -206,10 +243,33 @@ export function TeamChat() {
       });
   }, [allDMs, teammates, user?.id, search]);
 
+  const sendTyping = (event: "typing" | "stop_typing") => {
+    const ch = typingChannelRef.current;
+    if (!ch || !user) return;
+    void ch.send({ type: "broadcast", event, payload: { from: user.id } });
+  };
+
+  const handleInputChange = (value: string) => {
+    setInput(value);
+    if (!value.trim()) {
+      sendTyping("stop_typing");
+      lastTypingSentRef.current = 0;
+      return;
+    }
+    const now = Date.now();
+    // Throttle to one typing broadcast per ~1.5s
+    if (now - lastTypingSentRef.current > 1500) {
+      sendTyping("typing");
+      lastTypingSentRef.current = now;
+    }
+  };
+
   const handleSend = async () => {
     const body = input.trim();
     if (!body || !user || !activePeerId) return;
     setInput("");
+    sendTyping("stop_typing");
+    lastTypingSentRef.current = 0;
     const { error } = await supabase
       .from("direct_messages")
       .insert({ sender_id: user.id, recipient_id: activePeerId, body });
@@ -379,12 +439,28 @@ export function TeamChat() {
                     </div>
                   );
                 })}
+                {peerTyping && (
+                  <div className="flex gap-2 items-end animate-[fade-in_0.2s_ease-out]">
+                    <Avatar className="size-7 shrink-0">
+                      <AvatarFallback className="bg-primary/15 text-primary text-[10px] font-semibold">
+                        {activePeer.display_name.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="bg-card border border-border rounded-2xl rounded-bl-sm px-3 py-2 shadow-card flex items-center gap-1">
+                      <span className="size-1.5 rounded-full bg-muted-foreground/70 animate-[bounce_1.2s_ease-in-out_infinite]" />
+                      <span className="size-1.5 rounded-full bg-muted-foreground/70 animate-[bounce_1.2s_ease-in-out_0.15s_infinite]" />
+                      <span className="size-1.5 rounded-full bg-muted-foreground/70 animate-[bounce_1.2s_ease-in-out_0.3s_infinite]" />
+                      <span className="ml-1.5 text-[10px] text-muted-foreground">typing…</span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="p-3 border-t border-border bg-background/50 flex items-center gap-2">
                 <Input
                   value={input}
-                  onChange={(e) => setInput(e.target.value)}
+                  onChange={(e) => handleInputChange(e.target.value)}
+                  onBlur={() => sendTyping("stop_typing")}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
