@@ -439,12 +439,28 @@ export function TeamChat() {
                     </div>
                   );
                 })}
+                {peerTyping && (
+                  <div className="flex gap-2 items-end animate-[fade-in_0.2s_ease-out]">
+                    <Avatar className="size-7 shrink-0">
+                      <AvatarFallback className="bg-primary/15 text-primary text-[10px] font-semibold">
+                        {activePeer.display_name.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="bg-card border border-border rounded-2xl rounded-bl-sm px-3 py-2 shadow-card flex items-center gap-1">
+                      <span className="size-1.5 rounded-full bg-muted-foreground/70 animate-[bounce_1.2s_ease-in-out_infinite]" />
+                      <span className="size-1.5 rounded-full bg-muted-foreground/70 animate-[bounce_1.2s_ease-in-out_0.15s_infinite]" />
+                      <span className="size-1.5 rounded-full bg-muted-foreground/70 animate-[bounce_1.2s_ease-in-out_0.3s_infinite]" />
+                      <span className="ml-1.5 text-[10px] text-muted-foreground">typing…</span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="p-3 border-t border-border bg-background/50 flex items-center gap-2">
                 <Input
                   value={input}
-                  onChange={(e) => setInput(e.target.value)}
+                  onChange={(e) => handleInputChange(e.target.value)}
+                  onBlur={() => sendTyping("stop_typing")}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
