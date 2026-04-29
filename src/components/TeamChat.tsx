@@ -40,7 +40,7 @@ export function TeamChat() {
   const [input, setInput] = useState("");
   const [search, setSearch] = useState("");
   const [peerTyping, setPeerTyping] = useState(false);
-  const [presence, setPresence] = useState<Record<string, { online: boolean; lastActive: string | null }>>({});
+  const presence = usePresence();
   const scrollRef = useRef<HTMLDivElement>(null);
   const openRef = useRef(open);
   const activePeerRef = useRef(activePeerId);
