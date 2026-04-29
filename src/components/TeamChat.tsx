@@ -393,14 +393,17 @@ export function TeamChat() {
                 </Button>
               )}
               <div className="min-w-0">
-                <div className="font-display font-bold text-sm truncate">
+                <div className="font-display font-bold text-sm truncate flex items-center gap-1.5">
                   {activePeer ? activePeer.display_name : "Direct messages"}
+                  {activePeer && presence[activePeer.id]?.online && (
+                    <span className="size-2 rounded-full bg-emerald-500 ring-2 ring-background shadow-[0_0_8px_rgb(16_185_129_/_0.6)]" />
+                  )}
                 </div>
                 <div className="text-xs text-muted-foreground truncate">
                   {activePeer
-                    ? activePeer.role
-                      ? roleMeta[activePeer.role].label
-                      : "Teammate"
+                    ? presence[activePeer.id]?.online
+                      ? `Online${peerTyping ? " · typing…" : ""}`
+                      : formatLastActive(presence[activePeer.id]?.lastActive ?? null)
                     : "Private 1:1 chats"}
                 </div>
               </div>
