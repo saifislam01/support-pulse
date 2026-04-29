@@ -73,8 +73,10 @@ function RootComponent() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <Outlet />
-        <Toaster richColors position="top-right" />
+        <PresenceProvider>
+          <Outlet />
+          <Toaster richColors position="top-right" />
+        </PresenceProvider>
       </AuthProvider>
     </ThemeProvider>
   );
