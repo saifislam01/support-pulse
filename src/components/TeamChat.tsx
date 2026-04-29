@@ -39,6 +39,7 @@ export function TeamChat() {
   const [input, setInput] = useState("");
   const [search, setSearch] = useState("");
   const [peerTyping, setPeerTyping] = useState(false);
+  const [presence, setPresence] = useState<Record<string, { online: boolean; lastActive: string | null }>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
   const openRef = useRef(open);
   const activePeerRef = useRef(activePeerId);
@@ -205,6 +206,68 @@ export function TeamChat() {
     };
   }, [user?.id, activePeerId]);
 
+  // Global presence channel — tracks who is online + last active
+  useEffect(() => {
+    if (!user) return;
+    const ch = supabase.channel("dm_presence", {
+      config: { presence: { key: user.id } },
+    });
+
+    const recompute = () => {
+      const state = ch.presenceState() as Record<string, Array<{ online_at?: string }>>;
+      setPresence((prev) => {
+        const next: Record<string, { online: boolean; lastActive: string | null }> = {};
+        // Mark currently-present users as online
+        for (const uid of Object.keys(state)) {
+          const metas = state[uid] ?? [];
+          const latest = metas
+            .map((m) => m.online_at)
+            .filter(Boolean)
+            .sort()
+            .pop() ?? new Date().toISOString();
+          next[uid] = { online: true, lastActive: latest };
+        }
+        // Carry over previous lastActive for users no longer online
+        for (const [uid, info] of Object.entries(prev)) {
+          if (!next[uid]) {
+            next[uid] = { online: false, lastActive: info.lastActive ?? new Date().toISOString() };
+          }
+        }
+        return next;
+      });
+    };
+
+    ch.on("presence", { event: "sync" }, recompute);
+    ch.on("presence", { event: "join" }, recompute);
+    ch.on("presence", { event: "leave" }, recompute);
+
+    ch.subscribe(async (status) => {
+      if (status === "SUBSCRIBED") {
+        await ch.track({ online_at: new Date().toISOString() });
+      }
+    });
+
+    // Heartbeat every 30s while tab is visible to refresh online_at
+    const heartbeat = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        void ch.track({ online_at: new Date().toISOString() });
+      }
+    }, 30000);
+
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") {
+        void ch.track({ online_at: new Date().toISOString() });
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      clearInterval(heartbeat);
+      document.removeEventListener("visibilitychange", onVisibility);
+      void supabase.removeChannel(ch);
+    };
+  }, [user?.id]);
+
   // Auto-scroll
   useEffect(() => {
     if (open && activePeerId && scrollRef.current) {
@@ -286,6 +349,19 @@ export function TeamChat() {
 
   const activePeer = activePeerId ? teammates.find((t) => t.id === activePeerId) : null;
 
+  const formatLastActive = (iso: string | null): string => {
+    if (!iso) return "Offline";
+    const diffMs = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 1) return "Active just now";
+    if (mins < 60) return `Active ${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `Active ${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    if (days < 7) return `Active ${days}d ago`;
+    return `Active ${new Date(iso).toLocaleDateString()}`;
+  };
+
   if (!user || !role) return null;
 
   return (
@@ -317,14 +393,17 @@ export function TeamChat() {
                 </Button>
               )}
               <div className="min-w-0">
-                <div className="font-display font-bold text-sm truncate">
+                <div className="font-display font-bold text-sm truncate flex items-center gap-1.5">
                   {activePeer ? activePeer.display_name : "Direct messages"}
+                  {activePeer && presence[activePeer.id]?.online && (
+                    <span className="size-2 rounded-full bg-emerald-500 ring-2 ring-background shadow-[0_0_8px_rgb(16_185_129_/_0.6)]" />
+                  )}
                 </div>
                 <div className="text-xs text-muted-foreground truncate">
                   {activePeer
-                    ? activePeer.role
-                      ? roleMeta[activePeer.role].label
-                      : "Teammate"
+                    ? presence[activePeer.id]?.online
+                      ? `Online${peerTyping ? " · typing…" : ""}`
+                      : formatLastActive(presence[activePeer.id]?.lastActive ?? null)
                     : "Private 1:1 chats"}
                 </div>
               </div>
@@ -359,17 +438,28 @@ export function TeamChat() {
                   const initials = teammate.display_name.slice(0, 2).toUpperCase();
                   const last = summary?.lastMsg;
                   const lastFromMe = last?.sender_id === user.id;
+                  const pres = presence[teammate.id];
+                  const isOnline = !!pres?.online;
                   return (
                     <button
                       key={teammate.id}
                       onClick={() => setActivePeerId(teammate.id)}
                       className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-sidebar-accent transition-colors text-left border-b border-border/50"
                     >
-                      <Avatar className="size-9 shrink-0">
-                        <AvatarFallback className="bg-primary/15 text-primary text-xs font-semibold">
-                          {initials}
-                        </AvatarFallback>
-                      </Avatar>
+                      <div className="relative shrink-0">
+                        <Avatar className="size-9">
+                          <AvatarFallback className="bg-primary/15 text-primary text-xs font-semibold">
+                            {initials}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span
+                          className={cn(
+                            "absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full ring-2 ring-background",
+                            isOnline ? "bg-emerald-500 shadow-[0_0_6px_rgb(16_185_129_/_0.7)]" : "bg-muted-foreground/40",
+                          )}
+                          title={isOnline ? "Online" : formatLastActive(pres?.lastActive ?? null)}
+                        />
+                      </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
                           <span className="text-sm font-medium truncate">{teammate.display_name}</span>
@@ -383,7 +473,9 @@ export function TeamChat() {
                         <div className="text-xs text-muted-foreground truncate">
                           {last
                             ? `${lastFromMe ? "You: " : ""}${last.body}`
-                            : "Tap to start a conversation"}
+                            : isOnline
+                              ? "Online · say hi"
+                              : formatLastActive(pres?.lastActive ?? null)}
                         </div>
                       </div>
                       {summary && summary.unread > 0 && (
