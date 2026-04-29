@@ -172,12 +172,45 @@ export function TeamChat() {
       .in("id", unreadIds);
   }, [allDMs, activePeerId, open, user?.id]);
 
+  // Per-conversation typing channel (broadcast)
+  useEffect(() => {
+    if (!user || !activePeerId) {
+      setPeerTyping(false);
+      return;
+    }
+    const room = `dm_typing_${[user.id, activePeerId].sort().join("_")}`;
+    const ch = supabase.channel(room, { config: { broadcast: { self: false } } });
+    ch.on("broadcast", { event: "typing" }, (payload) => {
+      const from = (payload.payload as { from?: string } | undefined)?.from;
+      if (from && from === activePeerRef.current) {
+        setPeerTyping(true);
+        if (typingClearTimerRef.current) clearTimeout(typingClearTimerRef.current);
+        typingClearTimerRef.current = setTimeout(() => setPeerTyping(false), 3000);
+      }
+    });
+    ch.on("broadcast", { event: "stop_typing" }, (payload) => {
+      const from = (payload.payload as { from?: string } | undefined)?.from;
+      if (from && from === activePeerRef.current) {
+        if (typingClearTimerRef.current) clearTimeout(typingClearTimerRef.current);
+        setPeerTyping(false);
+      }
+    });
+    ch.subscribe();
+    typingChannelRef.current = ch;
+    return () => {
+      typingChannelRef.current = null;
+      if (typingClearTimerRef.current) clearTimeout(typingClearTimerRef.current);
+      setPeerTyping(false);
+      void supabase.removeChannel(ch);
+    };
+  }, [user?.id, activePeerId]);
+
   // Auto-scroll
   useEffect(() => {
     if (open && activePeerId && scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, open, activePeerId]);
+  }, [messages, open, activePeerId, peerTyping]);
 
   const totalUnread = useMemo(() => {
     if (!user) return 0;
