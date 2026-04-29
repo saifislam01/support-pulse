@@ -206,6 +206,68 @@ export function TeamChat() {
     };
   }, [user?.id, activePeerId]);
 
+  // Global presence channel — tracks who is online + last active
+  useEffect(() => {
+    if (!user) return;
+    const ch = supabase.channel("dm_presence", {
+      config: { presence: { key: user.id } },
+    });
+
+    const recompute = () => {
+      const state = ch.presenceState() as Record<string, Array<{ online_at?: string }>>;
+      setPresence((prev) => {
+        const next: Record<string, { online: boolean; lastActive: string | null }> = {};
+        // Mark currently-present users as online
+        for (const uid of Object.keys(state)) {
+          const metas = state[uid] ?? [];
+          const latest = metas
+            .map((m) => m.online_at)
+            .filter(Boolean)
+            .sort()
+            .pop() ?? new Date().toISOString();
+          next[uid] = { online: true, lastActive: latest };
+        }
+        // Carry over previous lastActive for users no longer online
+        for (const [uid, info] of Object.entries(prev)) {
+          if (!next[uid]) {
+            next[uid] = { online: false, lastActive: info.lastActive ?? new Date().toISOString() };
+          }
+        }
+        return next;
+      });
+    };
+
+    ch.on("presence", { event: "sync" }, recompute);
+    ch.on("presence", { event: "join" }, recompute);
+    ch.on("presence", { event: "leave" }, recompute);
+
+    ch.subscribe(async (status) => {
+      if (status === "SUBSCRIBED") {
+        await ch.track({ online_at: new Date().toISOString() });
+      }
+    });
+
+    // Heartbeat every 30s while tab is visible to refresh online_at
+    const heartbeat = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        void ch.track({ online_at: new Date().toISOString() });
+      }
+    }, 30000);
+
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") {
+        void ch.track({ online_at: new Date().toISOString() });
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      clearInterval(heartbeat);
+      document.removeEventListener("visibilitychange", onVisibility);
+      void supabase.removeChannel(ch);
+    };
+  }, [user?.id]);
+
   // Auto-scroll
   useEffect(() => {
     if (open && activePeerId && scrollRef.current) {
