@@ -349,6 +349,19 @@ export function TeamChat() {
 
   const activePeer = activePeerId ? teammates.find((t) => t.id === activePeerId) : null;
 
+  const formatLastActive = (iso: string | null): string => {
+    if (!iso) return "Offline";
+    const diffMs = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 1) return "Active just now";
+    if (mins < 60) return `Active ${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `Active ${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    if (days < 7) return `Active ${days}d ago`;
+    return `Active ${new Date(iso).toLocaleDateString()}`;
+  };
+
   if (!user || !role) return null;
 
   return (
