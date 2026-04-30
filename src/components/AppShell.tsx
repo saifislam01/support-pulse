@@ -58,10 +58,34 @@ export function AppShell({ children }: { children: ReactNode }) {
     navigate({ to: "/login" });
   };
 
-  const initials = (user?.user_metadata?.display_name ?? user?.email ?? "U")
-    .split(/[\s@]/)[0]
-    .slice(0, 2)
-    .toUpperCase();
+  const displayName =
+    (user?.user_metadata?.display_name as string | undefined) ?? user?.email?.split("@")[0] ?? "U";
+
+  const initials = displayName.split(/[\s@]/)[0].slice(0, 2).toUpperCase();
+
+  // Load avatar + display name from the profiles table so updates appear app-wide.
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [profileName, setProfileName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    void (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("display_name, avatar_url")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (!active || !data) return;
+      setAvatarUrl(data.avatar_url ?? null);
+      setProfileName(data.display_name ?? null);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [user]);
+
+  const shownName = profileName ?? displayName;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
