@@ -1,9 +1,11 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { LayoutDashboard, ListChecks, Trophy, LogOut, Moon, Sun, Sparkles, Shield, Briefcase, Headphones, FileText } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/lib/theme";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NotificationBell } from "@/components/NotificationBell";
 import { TeamChat } from "@/components/TeamChat";
 import { HourlyReminder } from "@/components/HourlyReminder";
@@ -56,10 +58,34 @@ export function AppShell({ children }: { children: ReactNode }) {
     navigate({ to: "/login" });
   };
 
-  const initials = (user?.user_metadata?.display_name ?? user?.email ?? "U")
-    .split(/[\s@]/)[0]
-    .slice(0, 2)
-    .toUpperCase();
+  const displayName =
+    (user?.user_metadata?.display_name as string | undefined) ?? user?.email?.split("@")[0] ?? "U";
+
+  const initials = displayName.split(/[\s@]/)[0].slice(0, 2).toUpperCase();
+
+  // Load avatar + display name from the profiles table so updates appear app-wide.
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [profileName, setProfileName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    void (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("display_name, avatar_url")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (!active || !data) return;
+      setAvatarUrl(data.avatar_url ?? null);
+      setProfileName(data.display_name ?? null);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [user]);
+
+  const shownName = profileName ?? displayName;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -98,19 +124,24 @@ export function AppShell({ children }: { children: ReactNode }) {
           </nav>
 
           <div className="flex items-center gap-2 pt-4 border-t border-border">
-            <Avatar className="size-9">
-              <AvatarFallback className="bg-primary/15 text-primary text-xs font-semibold">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium truncate">
-                {user?.user_metadata?.display_name ?? user?.email?.split("@")[0]}
+            <Link
+              to="/profile"
+              className="flex items-center gap-2 flex-1 min-w-0 rounded-md hover:bg-sidebar-accent/40 transition-colors px-1 py-1 -mx-1"
+              title="Edit profile"
+            >
+              <Avatar className="size-9">
+                {avatarUrl ? <AvatarImage src={avatarUrl} alt={shownName} /> : null}
+                <AvatarFallback className="bg-primary/15 text-primary text-xs font-semibold">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium truncate">{shownName}</div>
+                <div className="text-xs text-muted-foreground truncate">
+                  {roleLabel ?? user?.email}
+                </div>
               </div>
-              <div className="text-xs text-muted-foreground truncate">
-                {roleLabel ?? user?.email}
-              </div>
-            </div>
+            </Link>
             <NotificationBell />
           </div>
 
