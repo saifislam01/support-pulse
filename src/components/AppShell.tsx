@@ -1,9 +1,11 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { LayoutDashboard, ListChecks, Trophy, LogOut, Moon, Sun, Sparkles, Shield, Briefcase, Headphones, FileText } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/lib/theme";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NotificationBell } from "@/components/NotificationBell";
 import { TeamChat } from "@/components/TeamChat";
 import { HourlyReminder } from "@/components/HourlyReminder";
