@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      calendar_reminders_seen: {
+        Row: {
+          event_id: string
+          event_start: string
+          id: string
+          notified_at: string
+          user_id: string
+        }
+        Insert: {
+          event_id: string
+          event_start: string
+          id?: string
+          notified_at?: string
+          user_id: string
+        }
+        Update: {
+          event_id?: string
+          event_start?: string
+          id?: string
+          notified_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       daily_task_completions: {
         Row: {
           completed_at: string
@@ -234,6 +258,39 @@ export type Database = {
           body?: string
           created_at?: string
           id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_google_tokens: {
+        Row: {
+          access_token: string
+          created_at: string
+          expires_at: string
+          google_email: string | null
+          refresh_token: string
+          scope: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          expires_at: string
+          google_email?: string | null
+          refresh_token: string
+          scope?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          expires_at?: string
+          google_email?: string | null
+          refresh_token?: string
+          scope?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
