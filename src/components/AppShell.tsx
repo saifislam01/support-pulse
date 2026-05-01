@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, ListChecks, Trophy, LogOut, Moon, Sun, Sparkles, Shield, Briefcase, Headphones, FileText } from "lucide-react";
+import { LayoutDashboard, ListChecks, Trophy, LogOut, Moon, Sun, Sparkles, Shield, Briefcase, Headphones, FileText, CalendarDays } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/lib/theme";
@@ -15,6 +15,7 @@ import type { ReactNode } from "react";
 const baseNav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/tasks", label: "Tasks", icon: ListChecks },
+  { to: "/calendar", label: "Calendar", icon: CalendarDays },
   { to: "/sumup", label: "Sumup", icon: FileText },
   { to: "/leaderboard", label: "Leaderboard", icon: Trophy },
 ];
