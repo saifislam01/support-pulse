@@ -18,6 +18,9 @@ import { Route as LeaderboardRouteImport } from './routes/leaderboard'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthGoogleCallbackRouteImport } from './routes/auth.google.callback'
+import { Route as ApiGoogleExchangeRouteImport } from './routes/api/google/exchange'
+import { Route as ApiGoogleEventsRouteImport } from './routes/api/google/events'
 
 const TasksRoute = TasksRouteImport.update({
   id: '/tasks',
@@ -64,6 +67,21 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthGoogleCallbackRoute = AuthGoogleCallbackRouteImport.update({
+  id: '/auth/google/callback',
+  path: '/auth/google/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiGoogleExchangeRoute = ApiGoogleExchangeRouteImport.update({
+  id: '/api/google/exchange',
+  path: '/api/google/exchange',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiGoogleEventsRoute = ApiGoogleEventsRouteImport.update({
+  id: '/api/google/events',
+  path: '/api/google/events',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -75,6 +93,9 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/sumup': typeof SumupRoute
   '/tasks': typeof TasksRoute
+  '/api/google/events': typeof ApiGoogleEventsRoute
+  '/api/google/exchange': typeof ApiGoogleExchangeRoute
+  '/auth/google/callback': typeof AuthGoogleCallbackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -86,6 +107,9 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/sumup': typeof SumupRoute
   '/tasks': typeof TasksRoute
+  '/api/google/events': typeof ApiGoogleEventsRoute
+  '/api/google/exchange': typeof ApiGoogleExchangeRoute
+  '/auth/google/callback': typeof AuthGoogleCallbackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -98,6 +122,9 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/sumup': typeof SumupRoute
   '/tasks': typeof TasksRoute
+  '/api/google/events': typeof ApiGoogleEventsRoute
+  '/api/google/exchange': typeof ApiGoogleExchangeRoute
+  '/auth/google/callback': typeof AuthGoogleCallbackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -111,6 +138,9 @@ export interface FileRouteTypes {
     | '/signup'
     | '/sumup'
     | '/tasks'
+    | '/api/google/events'
+    | '/api/google/exchange'
+    | '/auth/google/callback'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -122,6 +152,9 @@ export interface FileRouteTypes {
     | '/signup'
     | '/sumup'
     | '/tasks'
+    | '/api/google/events'
+    | '/api/google/exchange'
+    | '/auth/google/callback'
   id:
     | '__root__'
     | '/'
@@ -133,6 +166,9 @@ export interface FileRouteTypes {
     | '/signup'
     | '/sumup'
     | '/tasks'
+    | '/api/google/events'
+    | '/api/google/exchange'
+    | '/auth/google/callback'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -145,6 +181,9 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   SumupRoute: typeof SumupRoute
   TasksRoute: typeof TasksRoute
+  ApiGoogleEventsRoute: typeof ApiGoogleEventsRoute
+  ApiGoogleExchangeRoute: typeof ApiGoogleExchangeRoute
+  AuthGoogleCallbackRoute: typeof AuthGoogleCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -212,6 +251,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth/google/callback': {
+      id: '/auth/google/callback'
+      path: '/auth/google/callback'
+      fullPath: '/auth/google/callback'
+      preLoaderRoute: typeof AuthGoogleCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/google/exchange': {
+      id: '/api/google/exchange'
+      path: '/api/google/exchange'
+      fullPath: '/api/google/exchange'
+      preLoaderRoute: typeof ApiGoogleExchangeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/google/events': {
+      id: '/api/google/events'
+      path: '/api/google/events'
+      fullPath: '/api/google/events'
+      preLoaderRoute: typeof ApiGoogleEventsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -225,6 +285,9 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   SumupRoute: SumupRoute,
   TasksRoute: TasksRoute,
+  ApiGoogleEventsRoute: ApiGoogleEventsRoute,
+  ApiGoogleExchangeRoute: ApiGoogleExchangeRoute,
+  AuthGoogleCallbackRoute: AuthGoogleCallbackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
