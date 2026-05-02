@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MessagesSquare, Send, X, Shield, Briefcase, Headphones, ArrowLeft, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, type Role } from "@/lib/auth";
@@ -95,7 +95,7 @@ export function TeamChat() {
         console.error("Failed to load DMs", error);
         return;
       }
-      setAllDMs(data ?? []);
+      setAllDMs((data ?? []).slice().sort((a, b) => a.created_at.localeCompare(b.created_at)));
     })();
 
     const channel = supabase
@@ -155,6 +155,36 @@ export function TeamChat() {
     }
   }, [open, activePeerId]);
 
+  const markPeerMessagesRead = useCallback(
+    (peerId: string) => {
+      if (!user) return;
+      const readAt = new Date().toISOString();
+
+      setAllDMs((prev) => {
+        let changed = false;
+        const next = prev.map((m) => {
+          if (m.sender_id === peerId && m.recipient_id === user.id && !m.read_at) {
+            changed = true;
+            return { ...m, read_at: readAt };
+          }
+          return m;
+        });
+        return changed ? next : prev;
+      });
+
+      void supabase
+        .from("direct_messages")
+        .update({ read_at: readAt })
+        .eq("sender_id", peerId)
+        .eq("recipient_id", user.id)
+        .is("read_at", null)
+        .then(({ error }) => {
+          if (error) console.error("Failed to mark DMs as read", error);
+        });
+    },
+    [user?.id],
+  );
+
   // Filter conversation messages from allDMs based on active peer
   useEffect(() => {
     if (!user || !activePeerId) {
@@ -171,26 +201,11 @@ export function TeamChat() {
     setMessages(conv);
   }, [allDMs, activePeerId, user?.id]);
 
-  // Mark unread messages from active peer as read
+  // Mark all unread messages from the active peer as read, including any not in the local cache
   useEffect(() => {
     if (!user || !activePeerId || !open) return;
-    const unreadIds = allDMs
-      .filter((m) => m.sender_id === activePeerId && m.recipient_id === user.id && !m.read_at)
-      .map((m) => m.id);
-    if (unreadIds.length === 0) return;
-    const readAt = new Date().toISOString();
-    setAllDMs((prev) =>
-      prev.map((m) =>
-        unreadIds.includes(m.id)
-          ? { ...m, read_at: readAt }
-          : m,
-      ),
-    );
-    void supabase
-      .from("direct_messages")
-      .update({ read_at: readAt })
-      .in("id", unreadIds);
-  }, [allDMs, activePeerId, open, user?.id]);
+    markPeerMessagesRead(activePeerId);
+  }, [allDMs, activePeerId, open, user?.id, markPeerMessagesRead]);
 
   // Per-conversation typing channel (broadcast)
   useEffect(() => {
