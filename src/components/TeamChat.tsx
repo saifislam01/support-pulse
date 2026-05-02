@@ -1,5 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { MessagesSquare, Send, X, Shield, Briefcase, Headphones, ArrowLeft, Search } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  MessagesSquare,
+  Send,
+  X,
+  Shield,
+  Briefcase,
+  Headphones,
+  ArrowLeft,
+  Search,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, type Role } from "@/lib/auth";
 import { usePresence } from "@/lib/presence";
@@ -35,6 +44,7 @@ export function TeamChat() {
   const [open, setOpen] = useState(false);
   const [teammates, setTeammates] = useState<Teammate[]>([]);
   const [activePeerId, setActivePeerId] = useState<string | null>(null);
+  const [readCutoffs, setReadCutoffs] = useState<Record<string, string>>({});
   const [messages, setMessages] = useState<DM[]>([]);
   const [allDMs, setAllDMs] = useState<DM[]>([]); // for unread + last-message previews
   const [input, setInput] = useState("");
@@ -95,14 +105,19 @@ export function TeamChat() {
         console.error("Failed to load DMs", error);
         return;
       }
-      setAllDMs(data ?? []);
+      setAllDMs((data ?? []).slice().sort((a, b) => a.created_at.localeCompare(b.created_at)));
     })();
 
     const channel = supabase
       .channel(`dm_user_${user.id}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "direct_messages", filter: `recipient_id=eq.${user.id}` },
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "direct_messages",
+          filter: `recipient_id=eq.${user.id}`,
+        },
         (payload) => {
           const m = payload.new as DM;
           setAllDMs((p) => (p.some((x) => x.id === m.id) ? p : [...p, m]));
@@ -117,7 +132,12 @@ export function TeamChat() {
       )
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "direct_messages", filter: `sender_id=eq.${user.id}` },
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "direct_messages",
+          filter: `sender_id=eq.${user.id}`,
+        },
         (payload) => {
           const m = payload.new as DM;
           setAllDMs((p) => (p.some((x) => x.id === m.id) ? p : [...p, m]));
@@ -155,6 +175,37 @@ export function TeamChat() {
     }
   }, [open, activePeerId]);
 
+  const markPeerMessagesRead = useCallback(
+    (peerId: string) => {
+      if (!user) return;
+      const readAt = new Date().toISOString();
+      setReadCutoffs((prev) => ({ ...prev, [peerId]: readAt }));
+
+      setAllDMs((prev) => {
+        let changed = false;
+        const next = prev.map((m) => {
+          if (m.sender_id === peerId && m.recipient_id === user.id && !m.read_at) {
+            changed = true;
+            return { ...m, read_at: readAt };
+          }
+          return m;
+        });
+        return changed ? next : prev;
+      });
+
+      void supabase
+        .from("direct_messages")
+        .update({ read_at: readAt })
+        .eq("sender_id", peerId)
+        .eq("recipient_id", user.id)
+        .is("read_at", null)
+        .then(({ error }) => {
+          if (error) console.error("Failed to mark DMs as read", error);
+        });
+    },
+    [user?.id],
+  );
+
   // Filter conversation messages from allDMs based on active peer
   useEffect(() => {
     if (!user || !activePeerId) {
@@ -171,26 +222,11 @@ export function TeamChat() {
     setMessages(conv);
   }, [allDMs, activePeerId, user?.id]);
 
-  // Mark unread messages from active peer as read
+  // Mark all unread messages from the active peer as read, including any not in the local cache
   useEffect(() => {
     if (!user || !activePeerId || !open) return;
-    const unreadIds = allDMs
-      .filter((m) => m.sender_id === activePeerId && m.recipient_id === user.id && !m.read_at)
-      .map((m) => m.id);
-    if (unreadIds.length === 0) return;
-    const readAt = new Date().toISOString();
-    setAllDMs((prev) =>
-      prev.map((m) =>
-        unreadIds.includes(m.id)
-          ? { ...m, read_at: readAt }
-          : m,
-      ),
-    );
-    void supabase
-      .from("direct_messages")
-      .update({ read_at: readAt })
-      .in("id", unreadIds);
-  }, [allDMs, activePeerId, open, user?.id]);
+    markPeerMessagesRead(activePeerId);
+  }, [allDMs, activePeerId, open, user?.id, markPeerMessagesRead]);
 
   // Per-conversation typing channel (broadcast)
   useEffect(() => {
@@ -240,10 +276,10 @@ export function TeamChat() {
       (m) =>
         m.recipient_id === user.id &&
         !m.read_at &&
-        // Exclude unread from the currently open conversation
-        !(open && activePeerId && m.sender_id === activePeerId),
+        (!readCutoffs[m.sender_id] ||
+          new Date(m.created_at).getTime() > new Date(readCutoffs[m.sender_id]).getTime()),
     ).length;
-  }, [allDMs, user?.id, open, activePeerId]);
+  }, [allDMs, user?.id, readCutoffs]);
 
   const conversations = useMemo(() => {
     if (!user) return [];
@@ -255,7 +291,8 @@ export function TeamChat() {
       const isUnread =
         m.recipient_id === user.id &&
         !m.read_at &&
-        !(open && activePeerId && m.sender_id === activePeerId);
+        (!readCutoffs[m.sender_id] ||
+          new Date(m.created_at).getTime() > new Date(readCutoffs[m.sender_id]).getTime());
       if (!cur || cur.lastMsg.created_at < m.created_at) {
         map.set(peerId, { lastMsg: m, unread: (cur?.unread ?? 0) + (isUnread ? 1 : 0) });
       } else if (isUnread) {
@@ -272,7 +309,7 @@ export function TeamChat() {
         const bt = b.summary?.lastMsg.created_at ?? "";
         return bt.localeCompare(at);
       });
-  }, [allDMs, teammates, user?.id, search, open, activePeerId]);
+  }, [allDMs, teammates, user?.id, search, readCutoffs]);
 
   const sendTyping = (event: "typing" | "stop_typing") => {
     const ch = typingChannelRef.current;
@@ -356,7 +393,12 @@ export function TeamChat() {
           <div className="flex items-center justify-between px-4 py-3 border-b border-border gradient-hero">
             <div className="flex items-center gap-2 min-w-0">
               {activePeer && (
-                <Button variant="ghost" size="icon" className="h-7 w-7 -ml-1" onClick={() => setActivePeerId(null)}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 -ml-1"
+                  onClick={() => setActivePeerId(null)}
+                >
                   <ArrowLeft className="size-4" />
                 </Button>
               )}
@@ -423,16 +465,25 @@ export function TeamChat() {
                         <span
                           className={cn(
                             "absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full ring-2 ring-background",
-                            isOnline ? "bg-emerald-500 shadow-[0_0_6px_rgb(16_185_129_/_0.7)]" : "bg-muted-foreground/40",
+                            isOnline
+                              ? "bg-emerald-500 shadow-[0_0_6px_rgb(16_185_129_/_0.7)]"
+                              : "bg-muted-foreground/40",
                           )}
                           title={isOnline ? "Online" : formatLastActive(pres?.lastActive ?? null)}
                         />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-sm font-medium truncate">{teammate.display_name}</span>
+                          <span className="text-sm font-medium truncate">
+                            {teammate.display_name}
+                          </span>
                           {meta && (
-                            <span className={cn("flex items-center gap-0.5 text-[10px] shrink-0", meta.color)}>
+                            <span
+                              className={cn(
+                                "flex items-center gap-0.5 text-[10px] shrink-0",
+                                meta.color,
+                              )}
+                            >
                               <meta.Icon className="size-2.5" />
                               {meta.label}
                             </span>
@@ -469,15 +520,25 @@ export function TeamChat() {
                 )}
                 {messages.map((m) => {
                   const mine = m.sender_id === user.id;
-                  const initials = (mine ? myInitials : activePeer.display_name.slice(0, 2)).toUpperCase();
+                  const initials = (
+                    mine ? myInitials : activePeer.display_name.slice(0, 2)
+                  ).toUpperCase();
                   return (
-                    <div key={m.id} className={cn("flex gap-2", mine ? "flex-row-reverse" : "flex-row")}>
+                    <div
+                      key={m.id}
+                      className={cn("flex gap-2", mine ? "flex-row-reverse" : "flex-row")}
+                    >
                       <Avatar className="size-7 shrink-0">
                         <AvatarFallback className="bg-primary/15 text-primary text-[10px] font-semibold">
                           {initials}
                         </AvatarFallback>
                       </Avatar>
-                      <div className={cn("max-w-[75%] flex flex-col", mine ? "items-end" : "items-start")}>
+                      <div
+                        className={cn(
+                          "max-w-[75%] flex flex-col",
+                          mine ? "items-end" : "items-start",
+                        )}
+                      >
                         <div
                           className={cn(
                             "rounded-2xl px-3 py-2 text-sm break-words shadow-card",
@@ -531,7 +592,12 @@ export function TeamChat() {
                   className="flex-1"
                   maxLength={1000}
                 />
-                <Button size="icon" onClick={() => void handleSend()} disabled={!input.trim()} className="press">
+                <Button
+                  size="icon"
+                  onClick={() => void handleSend()}
+                  disabled={!input.trim()}
+                  className="press"
+                >
                   <Send className="size-4" />
                 </Button>
               </div>
