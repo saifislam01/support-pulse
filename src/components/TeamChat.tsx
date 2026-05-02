@@ -228,8 +228,14 @@ export function TeamChat() {
 
   const totalUnread = useMemo(() => {
     if (!user) return 0;
-    return allDMs.filter((m) => m.recipient_id === user.id && !m.read_at).length;
-  }, [allDMs, user?.id]);
+    return allDMs.filter(
+      (m) =>
+        m.recipient_id === user.id &&
+        !m.read_at &&
+        // Exclude unread from the currently open conversation
+        !(open && activePeerId && m.sender_id === activePeerId),
+    ).length;
+  }, [allDMs, user?.id, open, activePeerId]);
 
   const conversations = useMemo(() => {
     if (!user) return [];
