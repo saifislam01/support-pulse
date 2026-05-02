@@ -178,9 +178,17 @@ export function TeamChat() {
       .filter((m) => m.sender_id === activePeerId && m.recipient_id === user.id && !m.read_at)
       .map((m) => m.id);
     if (unreadIds.length === 0) return;
+    const readAt = new Date().toISOString();
+    setAllDMs((prev) =>
+      prev.map((m) =>
+        unreadIds.includes(m.id)
+          ? { ...m, read_at: readAt }
+          : m,
+      ),
+    );
     void supabase
       .from("direct_messages")
-      .update({ read_at: new Date().toISOString() })
+      .update({ read_at: readAt })
       .in("id", unreadIds);
   }, [allDMs, activePeerId, open, user?.id]);
 
@@ -244,7 +252,10 @@ export function TeamChat() {
     for (const m of allDMs) {
       const peerId = m.sender_id === user.id ? m.recipient_id : m.sender_id;
       const cur = map.get(peerId);
-      const isUnread = m.recipient_id === user.id && !m.read_at;
+      const isUnread =
+        m.recipient_id === user.id &&
+        !m.read_at &&
+        !(open && activePeerId && m.sender_id === activePeerId);
       if (!cur || cur.lastMsg.created_at < m.created_at) {
         map.set(peerId, { lastMsg: m, unread: (cur?.unread ?? 0) + (isUnread ? 1 : 0) });
       } else if (isUnread) {
@@ -261,7 +272,7 @@ export function TeamChat() {
         const bt = b.summary?.lastMsg.created_at ?? "";
         return bt.localeCompare(at);
       });
-  }, [allDMs, teammates, user?.id, search]);
+  }, [allDMs, teammates, user?.id, search, open, activePeerId]);
 
   const sendTyping = (event: "typing" | "stop_typing") => {
     const ch = typingChannelRef.current;
