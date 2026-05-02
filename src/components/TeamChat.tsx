@@ -108,7 +108,10 @@ export function TeamChat() {
           setAllDMs((p) => (p.some((x) => x.id === m.id) ? p : [...p, m]));
           if (!openRef.current || activePeerRef.current !== m.sender_id) {
             const sender = teammates.find((t) => t.id === m.sender_id)?.display_name ?? "Teammate";
-            toast.message(`New message from ${sender}`, { description: m.body.slice(0, 80) });
+            toast.message(`New message from ${sender}`, {
+              id: `dm-${m.sender_id}`,
+              description: m.body.slice(0, 80),
+            });
           }
         },
       )
@@ -144,6 +147,13 @@ export function TeamChat() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, teammates.length]);
+
+  // Dismiss any pending toast notifications for the active peer when their chat opens
+  useEffect(() => {
+    if (open && activePeerId) {
+      toast.dismiss(`dm-${activePeerId}`);
+    }
+  }, [open, activePeerId]);
 
   // Filter conversation messages from allDMs based on active peer
   useEffect(() => {
