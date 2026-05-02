@@ -148,6 +148,13 @@ export function TeamChat() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, teammates.length]);
 
+  // Dismiss any pending toast notifications for the active peer when their chat opens
+  useEffect(() => {
+    if (open && activePeerId) {
+      toast.dismiss(`dm-${activePeerId}`);
+    }
+  }, [open, activePeerId]);
+
   // Filter conversation messages from allDMs based on active peer
   useEffect(() => {
     if (!user || !activePeerId) {
