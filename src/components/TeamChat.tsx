@@ -35,6 +35,7 @@ export function TeamChat() {
   const [open, setOpen] = useState(false);
   const [teammates, setTeammates] = useState<Teammate[]>([]);
   const [activePeerId, setActivePeerId] = useState<string | null>(null);
+  const [readCutoffs, setReadCutoffs] = useState<Record<string, string>>({});
   const [messages, setMessages] = useState<DM[]>([]);
   const [allDMs, setAllDMs] = useState<DM[]>([]); // for unread + last-message previews
   const [input, setInput] = useState("");
@@ -159,6 +160,7 @@ export function TeamChat() {
     (peerId: string) => {
       if (!user) return;
       const readAt = new Date().toISOString();
+      setReadCutoffs((prev) => ({ ...prev, [peerId]: readAt }));
 
       setAllDMs((prev) => {
         let changed = false;
@@ -255,10 +257,9 @@ export function TeamChat() {
       (m) =>
         m.recipient_id === user.id &&
         !m.read_at &&
-        // Exclude unread from the currently open conversation
-        !(open && activePeerId && m.sender_id === activePeerId),
+        (!readCutoffs[m.sender_id] || new Date(m.created_at).getTime() > new Date(readCutoffs[m.sender_id]).getTime()),
     ).length;
-  }, [allDMs, user?.id, open, activePeerId]);
+  }, [allDMs, user?.id, readCutoffs]);
 
   const conversations = useMemo(() => {
     if (!user) return [];
@@ -270,7 +271,7 @@ export function TeamChat() {
       const isUnread =
         m.recipient_id === user.id &&
         !m.read_at &&
-        !(open && activePeerId && m.sender_id === activePeerId);
+        (!readCutoffs[m.sender_id] || new Date(m.created_at).getTime() > new Date(readCutoffs[m.sender_id]).getTime());
       if (!cur || cur.lastMsg.created_at < m.created_at) {
         map.set(peerId, { lastMsg: m, unread: (cur?.unread ?? 0) + (isUnread ? 1 : 0) });
       } else if (isUnread) {
@@ -287,7 +288,7 @@ export function TeamChat() {
         const bt = b.summary?.lastMsg.created_at ?? "";
         return bt.localeCompare(at);
       });
-  }, [allDMs, teammates, user?.id, search, open, activePeerId]);
+  }, [allDMs, teammates, user?.id, search, readCutoffs]);
 
   const sendTyping = (event: "typing" | "stop_typing") => {
     const ch = typingChannelRef.current;
