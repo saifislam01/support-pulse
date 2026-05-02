@@ -104,6 +104,23 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    // Bound message count and per-message size to prevent AI credit abuse.
+    const MAX_MESSAGES = 50;
+    const MAX_MSG_LEN = 4000;
+    if (incoming.length > MAX_MESSAGES) {
+      return new Response(
+        JSON.stringify({ error: `Too many messages (max ${MAX_MESSAGES})` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    for (const m of incoming) {
+      if (typeof m?.content === "string" && m.content.length > MAX_MSG_LEN) {
+        return new Response(
+          JSON.stringify({ error: `Message too long (max ${MAX_MSG_LEN} chars)` }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+    }
 
     const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.45.0");
     const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
